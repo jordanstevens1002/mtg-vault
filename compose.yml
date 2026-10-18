@@ -34,7 +34,6 @@ services:
     depends_on:
       migrate: {condition: service_completed_successfully}
     restart: unless-stopped
-    profiles: [catalogue]
   web:
     build: ./frontend
     ports: ["${APP_BIND:-127.0.0.1}:${APP_PORT:-8080}:8080"]

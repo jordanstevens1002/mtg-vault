@@ -1,5 +1,6 @@
 """Atomic catalogue refresh. Run as a separate Compose process."""
 
+import gzip
 import json
 import logging
 import tempfile
@@ -69,16 +70,28 @@ def refresh() -> None:
                 )
                 db.add(state)
             bulk = scryfall.get_json("/bulk-data/default_cards")
-            url = scryfall.trusted_url(bulk["download_uri"], {"data.scryfall.io"})
+            jsonl = bool(bulk.get("jsonl_download_uri"))
+            download = bulk.get("jsonl_download_uri") or bulk.get("download_uri")
+            if not download:
+                raise ValueError("Provider bulk metadata has no supported download URL")
+            url = scryfall.trusted_url(download, {"data.scryfall.io"})
             with tempfile.TemporaryFile() as file:
                 with scryfall.client() as http, http.stream("GET", url) as response:
                     response.raise_for_status()
                     for chunk in response.iter_bytes():
                         file.write(chunk)
                 file.seek(0)
+                compressed = file.read(2) == b"\x1f\x8b"
+                file.seek(0)
+                stream = gzip.GzipFile(fileobj=file) if compressed else file
+                records = (
+                    (json.loads(line) for line in stream if line.strip())
+                    if jsonl
+                    else ijson.items(stream, "item")
+                )
                 with Session(engine) as db, db.begin():
                     count, batch = 0, []
-                    for row in ijson.items(file, "item"):
+                    for row in records:
                         batch.append(row)
                         if len(batch) == 500:
                             count += upsert_batch(db, batch)

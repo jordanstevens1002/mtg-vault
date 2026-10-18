@@ -35,7 +35,7 @@ export default function Library() {
           <p className="muted">Every printing. Every copy. A place for each.</p>
         </div>
         <Link className="button primary" to="/scan">
-          ＋ Scan a card
+          + Scan a card
         </Link>
       </div>
       <div className="toolbar">
@@ -59,7 +59,7 @@ export default function Library() {
             onChange={(e) => change('q', e.target.value)}
           />
         </label>
-        <label>
+        <label className="colour-filter">
           Colour identity
           <div className="colours">
             {['W', 'U', 'B', 'R', 'G'].map((colour, i) => (

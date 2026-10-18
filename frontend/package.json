@@ -10,7 +10,8 @@
     "test": "vitest run",
     "generate": "openapi-typescript http://localhost:8000/openapi.json -o src/generated/api.ts",
     "predev": "node scripts/prepare-ocr.mjs",
-    "prebuild": "node scripts/prepare-ocr.mjs"
+    "prebuild": "node scripts/prepare-ocr.mjs",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@tesseract.js-data/eng": "^1.0.0",
@@ -21,6 +22,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.0",
+    "@playwright/test": "^1.64.1",
     "@testing-library/react": "^16.3.0",
     "@types/node": "^24.0.0",
     "@types/react": "^19.2.0",

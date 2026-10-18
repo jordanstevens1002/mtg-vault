@@ -14,7 +14,7 @@ from vault.models import Balance, Collection, Deck, Location, Operation, Printin
 from vault.schemas import LocationView, StockSummary
 
 router = APIRouter(prefix="/api/v1", tags=["inventory"])
-DB = Annotated[Session, Depends(session)]
+DB = Annotated[Session, Depends(session, scope="function")]
 Section = Literal["mainboard", "sideboard", "commander"]
 Finish = Literal["nonfoil", "foil", "etched", "glossy"]
 
