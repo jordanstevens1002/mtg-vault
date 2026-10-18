@@ -7,12 +7,14 @@ from vault.commander import router as commander_router
 from vault.db import engine
 from vault.decks import router as decks_router
 from vault.inventory import router as inventory_router
+from vault.portability import router as portability_router
 
 app = FastAPI(title="MTG Vault", version="0.1.0")
 app.include_router(catalogue_router)
 app.include_router(inventory_router)
 app.include_router(decks_router)
 app.include_router(commander_router)
+app.include_router(portability_router)
 
 
 @app.get("/api/v1/health")
