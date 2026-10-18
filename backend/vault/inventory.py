@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from vault.catalogue import require
 from vault.db import COLLECTION_ID, session
 from vault.models import Balance, Collection, Deck, Location, Operation, Printing
+from vault.schemas import LocationView, StockSummary
 
 router = APIRouter(prefix="/api/v1", tags=["inventory"])
 DB = Annotated[Session, Depends(session)]
@@ -181,7 +182,7 @@ class NameInput(Input):
     name: str = Field(min_length=1, max_length=160, pattern=r".*\S.*")
 
 
-@router.get("/locations")
+@router.get("/locations", response_model=list[LocationView])
 def locations(db: DB) -> list[dict[str, str]]:
     return [
         {"id": str(item.id), "name": item.name}
@@ -226,7 +227,7 @@ def rename_location(location_id: UUID, body: NameInput, db: DB) -> dict[str, str
     return {"id": str(location.id), "name": location.name}
 
 
-@router.get("/summary")
+@router.get("/summary", response_model=StockSummary)
 def summary(db: DB) -> dict[str, int]:
     owned = db.scalar(
         select(func.coalesce(func.sum(Balance.quantity), 0)).where(

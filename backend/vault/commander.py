@@ -15,8 +15,10 @@ from sqlalchemy.orm import Session
 from vault.decks import detail
 from vault.inventory import DB, scoped
 from vault.models import Deck, SyncState
+from vault.schemas import ValidationView
 
 router = APIRouter(prefix="/api/v1/decks", tags=["commander"])
+
 RULES_DATE = "2026-09-25"
 RULES_URL = "https://media.wizards.com/2026/downloads/MagicCompRules%2020260925.txt"
 
@@ -204,6 +206,6 @@ def report(db: Session, deck_id: UUID) -> dict[str, Any]:
     }
 
 
-@router.get("/{deck_id}/validation")
+@router.get("/{deck_id}/validation", response_model=ValidationView)
 def validation(deck_id: UUID, db: DB) -> dict[str, Any]:
     return report(db, deck_id)

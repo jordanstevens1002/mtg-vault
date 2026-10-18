@@ -21,6 +21,7 @@ from vault.inventory import (
     scoped,
 )
 from vault.models import Balance, Card, Deck, DeckEntry, Printing
+from vault.schemas import DeckDetail, DeckSummary
 
 router = APIRouter(prefix="/api/v1/decks", tags=["decks"])
 
@@ -80,7 +81,7 @@ def deck_summary(db: DB, deck: Deck) -> dict[str, Any]:
     }
 
 
-@router.get("")
+@router.get("", response_model=list[DeckSummary])
 def list_decks(db: DB) -> list[dict[str, Any]]:
     return [
         deck_summary(db, deck)
@@ -104,7 +105,7 @@ def create_deck(body: DeckInput, db: DB) -> dict[str, Any]:
     return deck_summary(db, deck)
 
 
-@router.get("/{deck_id}")
+@router.get("/{deck_id}", response_model=DeckDetail)
 def detail(deck_id: UUID, db: DB) -> dict[str, Any]:
     deck = scoped(db, Deck, deck_id)
     result = deck_summary(db, deck)

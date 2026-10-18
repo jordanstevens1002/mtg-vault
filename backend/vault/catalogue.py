@@ -14,6 +14,7 @@ from vault import scryfall
 from vault.config import settings
 from vault.db import COLLECTION_ID, session
 from vault.models import Balance, Card, Cover, Printing, SyncState
+from vault.schemas import CardDetail, CardPage
 from vault.sync import upsert_batch
 
 router = APIRouter(prefix="/api/v1", tags=["catalogue"])
@@ -43,7 +44,7 @@ def totals(db: Session) -> Any:
     )
 
 
-@router.get("/cards")
+@router.get("/cards", response_model=CardPage)
 def cards(
     db: DB,
     q: str = Query("", max_length=200),
@@ -147,7 +148,7 @@ def cards(
     return {"items": result, "total": total, "offset": offset, "limit": limit}
 
 
-@router.get("/cards/{card_id}")
+@router.get("/cards/{card_id}", response_model=CardDetail)
 def card_detail(card_id: UUID, db: DB) -> dict[str, Any]:
     card = require(db, Card, card_id)
     prints = db.scalars(
