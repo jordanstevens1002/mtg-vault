@@ -94,3 +94,44 @@ test('local OCR recognises a captured frame and requires confirmation', async ({
   await expect.poll(async () => (await (await request.get('/api/v1/summary')).json()).owned).toBe(initial.owned + 1);
   expect(externalRequests).toEqual([]);
 });
+
+for (const engine of ['tesseract', 'paddle']) {
+  test(`${engine} excludes a non-land card's mana cost without saving stock`, async ({ page, request }) => {
+    test.setTimeout(180000);
+    const external: string[] = [];
+    page.on('request', (req) => {
+      if (/^https?:/.test(req.url()) && new URL(req.url()).origin !== new URL(process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8080').origin) external.push(req.url());
+    });
+    await page.addInitScript(() => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1280; canvas.height = 960;
+      const context = canvas.getContext('2d')!;
+      context.fillStyle = '#181818'; context.fillRect(0, 0, 1280, 960);
+      const height = 960 * 0.88, width = height * 488 / 680;
+      const x = (1280 - width) / 2, y = (960 - height) / 2;
+      context.fillStyle = '#e7b49e'; context.fillRect(x, y, width, height);
+      context.fillStyle = 'black'; context.font = 'bold 38px Arial';
+      context.fillText('Lightning Bolt', x + 25, y + 80);
+      context.beginPath(); context.arc(x + width - 60, y + 65, 25, 0, Math.PI * 2); context.fill();
+      context.fillStyle = '#ddd'; context.font = 'bold 32px Arial';
+      context.fillText('1', x + width - 69, y + 76);
+      const stream = canvas.captureStream(5);
+      Object.defineProperty(navigator.mediaDevices, 'getUserMedia', { value: async () => stream });
+      window.setInterval(() => { context.fillStyle = '#181818'; context.fillRect(0, 0, 2, 2); }, 100);
+    });
+    const initial = await (await request.get('/api/v1/summary')).json();
+    await page.goto('/scan');
+    await page.getByRole('combobox', { name: 'Text recognition' }).selectOption(engine);
+    await page.getByRole('button', { name: 'Start camera', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Capture and recognise' })).toBeEnabled();
+    await page.getByRole('button', { name: 'Capture and recognise' }).click();
+    await Promise.race([
+      expect(page.getByRole('textbox', { name: 'Card name' })).toHaveValue('Lightning Bolt', { timeout: 120000 }),
+      page.getByRole('alert').waitFor({ timeout: 120000 }).then(async () => { throw new Error(await page.getByRole('alert').innerText()); }),
+    ]);
+    await page.getByRole('button', { name: 'Lightning Bolt', exact: true }).click();
+    await expect(page.getByRole('combobox', { name: 'Confirm printing' })).toBeVisible();
+    expect((await (await request.get('/api/v1/summary')).json()).owned).toBe(initial.owned);
+    expect(external).toEqual([]);
+  });
+}
