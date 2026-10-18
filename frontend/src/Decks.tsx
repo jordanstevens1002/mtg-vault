@@ -146,6 +146,35 @@ export function DeckWorkspace() {
               : 'No successful sync recorded'}
             .
           </p>
+          {validation.data.color_choices?.map((choice) => (
+            <label key={choice.card_id}>
+              Colour for {choice.name}
+              <select
+                value={choice.color || ''}
+                disabled={action.pending}
+                onChange={(event) =>
+                  action.run(() => {
+                    const choices = Object.fromEntries(
+                      (validation.data?.color_choices || [])
+                        .map((item) => [
+                          item.card_id,
+                          item.card_id === choice.card_id ? event.target.value : item.color,
+                        ])
+                        .filter(([, color]) => color),
+                    );
+                    return send(`/decks/${id}/commander-colours`, { choices }, 'PUT');
+                  }, 'Commander colour saved')
+                }
+              >
+                <option value="">Choose a colour</option>
+                <option value="W">White</option>
+                <option value="U">Blue</option>
+                <option value="B">Black</option>
+                <option value="R">Red</option>
+                <option value="G">Green</option>
+              </select>
+            </label>
+          ))}
           {validation.data.findings.map((f, index) => (
             <p className="notice error" key={index}>
               {f.message}

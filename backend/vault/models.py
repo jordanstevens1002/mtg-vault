@@ -61,6 +61,9 @@ class Deck(Base):
     name: Mapped[str] = mapped_column(String(160))
     state: Mapped[str] = mapped_column(default="planned")
     format: Mapped[str] = mapped_column(default="commander")
+    commander_colors: Mapped[dict[str, str]] = mapped_column(
+        JSONB, default=dict, server_default="{}"
+    )
 
 
 class Balance(Base):

@@ -6,6 +6,7 @@ Implementation and automated validation began on 18 October 2026. No v1.0 tag or
 
 - React lint/type checks, component tests and production builds pass.
 - PostgreSQL tests cover grouped printings, filters, translated and multi-face names, stock transfers, repeated operations, competing mutations, independent plans, complete allocation, disassembly, Commander exceptions and previewed native imports.
+- The complete live Scryfall refresh stored 118,773 printings.
 - Both legacy JSON arrays and current gzip-compressed JSONL are covered. A failure after the first 500 catalogue rows rolls back the whole refresh.
 - Chromium against Docker Compose passes the Plains search → printing → receipt → planned deck → physical allocation journey and rejects an unresolved import.
 - A synthetic camera stream runs through the real bundled Tesseract engine; no stock is written until printing and quantity confirmation. No external browser OCR requests occur.
