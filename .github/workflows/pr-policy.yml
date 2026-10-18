@@ -19,7 +19,7 @@ jobs:
             const files = await github.paginate(github.rest.pulls.listFiles, { ...context.repo, pull_number: pr.number, per_page: 100 });
             let reviewed = 0, generated = 0;
             for (const file of files) {
-              const exempt = /(^|\/)(package-lock.json|LICENSE)$|generated|vendor/.test(file.filename);
+              const exempt = /(^|\/)(package-lock.json|requirements.lock|LICENSE)$|generated|vendor/.test(file.filename);
               if (exempt) generated += file.additions + file.deletions;
               else reviewed += file.additions + file.deletions;
             }
