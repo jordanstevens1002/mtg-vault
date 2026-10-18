@@ -33,6 +33,12 @@ def upsert_batch(db: Session, rows: list[dict[str, Any]]) -> int:
             "id": UUID(data["id"]),
             "card_id": card_id,
             "data": data,
+            "search_names": "\n".join(
+                value
+                for face in [data, *data.get("card_faces", [])]
+                for key in ("name", "printed_name")
+                if isinstance(value := face.get(key), str) and value
+            ),
         }
     if not prints:
         return 0
@@ -50,7 +56,10 @@ def upsert_batch(db: Session, rows: list[dict[str, Any]]) -> int:
             set_={
                 "card_id": statement.excluded.card_id,
                 "data": statement.excluded.data,
+                "search_names": statement.excluded.search_names,
             },
+            where=(Printing.data.is_distinct_from(statement.excluded.data))
+            | (Printing.search_names.is_distinct_from(statement.excluded.search_names)),
         )
     )
     return len(prints)

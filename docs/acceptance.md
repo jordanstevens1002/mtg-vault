@@ -7,6 +7,7 @@ Implementation and automated validation began on 18 October 2026. No v1.0 tag or
 - React lint/type checks, component tests and production builds pass.
 - PostgreSQL tests cover grouped printings, filters, translated and multi-face names, stock transfers, repeated operations, competing mutations, independent plans, complete allocation, disassembly, Commander exceptions and previewed native imports.
 - The complete live Scryfall refresh stored 118,773 printings.
+- All 33 backend tests pass, including migration backfills and offline image-cache behaviour. On the full catalogue, the Plains name query improved from 15.48 seconds to 0.17 seconds after migration 0003; both browser journeys then passed in 7.2 seconds.
 - Both legacy JSON arrays and current gzip-compressed JSONL are covered. A failure after the first 500 catalogue rows rolls back the whole refresh.
 - Chromium against Docker Compose passes the Plains search → printing → receipt → planned deck → physical allocation journey and rejects an unresolved import.
 - A synthetic camera stream runs through the real bundled Tesseract engine; no stock is written until printing and quantity confirmation. No external browser OCR requests occur.
@@ -23,3 +24,5 @@ Implementation and automated validation began on 18 October 2026. No v1.0 tag or
 - [ ] Record device/browser versions, observations and corrective PRs in issues #8 and #10.
 
 Real-device observations cannot be inferred from an emulated viewport or synthetic camera test. Keep the release PR unmerged and do not publish v1.0 until the above evidence is recorded.
+
+The maintainer explicitly requested a review pause before merging `develop` into `main`. Prepare the release PR as a draft; merging into `main` requires their subsequent approval.

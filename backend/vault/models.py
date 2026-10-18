@@ -6,6 +6,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Index,
     String,
     UniqueConstraint,
     func,
@@ -26,6 +27,14 @@ class Collection(Base):
 
 class Card(Base):
     __tablename__ = "cards"
+    __table_args__ = (
+        Index(
+            "ix_cards_name_trgm",
+            "name",
+            postgresql_using="gin",
+            postgresql_ops={"name": "gin_trgm_ops"},
+        ),
+    )
     id: Mapped[UUID] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(index=True)
     data: Mapped[dict[str, Any]] = mapped_column(JSONB)
@@ -33,9 +42,18 @@ class Card(Base):
 
 class Printing(Base):
     __tablename__ = "printings"
+    __table_args__ = (
+        Index(
+            "ix_printings_search_names_trgm",
+            "search_names",
+            postgresql_using="gin",
+            postgresql_ops={"search_names": "gin_trgm_ops"},
+        ),
+    )
     id: Mapped[UUID] = mapped_column(primary_key=True)
     card_id: Mapped[UUID] = mapped_column(ForeignKey("cards.id"), index=True)
     data: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    search_names: Mapped[str] = mapped_column(default="", server_default="")
 
 
 class Location(Base):
