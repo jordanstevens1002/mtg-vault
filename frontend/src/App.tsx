@@ -3,6 +3,7 @@ import { type Location, send, useAction, useResource } from './api';
 import { Notice } from './components';
 import CardDetail from './CardDetail';
 import Library from './Library';
+import Decks, { DeckWorkspace } from './Decks';
 
 function Storage() {
   const resource = useResource<Location[]>('/locations');
@@ -80,6 +81,7 @@ export default function App() {
           <NavLink to="/" end>
             Library
           </NavLink>
+          <NavLink to="/decks">Decks</NavLink>
           <NavLink to="/storage">Storage</NavLink>
         </nav>
         <span className="local-badge">
@@ -111,6 +113,8 @@ export default function App() {
           <Route path="/" element={<Library />} />
           <Route path="/cards/:id" element={<CardDetail />} />
           <Route path="/storage" element={<Storage />} />
+          <Route path="/decks" element={<Decks />} />
+          <Route path="/decks/:id" element={<DeckWorkspace />} />
           <Route
             path="*"
             element={
