@@ -1,0 +1,15 @@
+name: Bug
+description: Report incorrect behaviour
+labels: ["type:bug"]
+body:
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps, expected result and actual result
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Version, browser and deployment details
+      description: Exclude credentials and private collection data.

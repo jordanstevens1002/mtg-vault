@@ -1,0 +1,59 @@
+name: CI
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+permissions:
+  contents: read
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: vault
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: vault_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U vault -d vault_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg://vault:test@localhost:5432/vault_test
+      TEST_DATABASE_URL: postgresql+psycopg://vault:test@localhost:5432/vault_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Repository baseline
+        run: test -s LICENSE && test -s CONTRIBUTING.md && test -s SECURITY.md
+      - name: Backend
+        run: |
+          if [ -f backend/pyproject.toml ]; then
+            pip install -e 'backend[dev]'
+            ruff check backend
+            ruff format --check backend
+            mypy backend/vault
+            pytest backend/tests
+          fi
+      - name: Frontend
+        run: |
+          if [ -f frontend/package-lock.json ]; then
+            cd frontend
+            npm ci
+            npm run check
+            npm test
+            npm run build
+          fi
+      - name: Compose configuration
+        run: |
+          if [ -f compose.yml ]; then
+            cp .env.example .env
+            docker compose config --quiet
+          fi
