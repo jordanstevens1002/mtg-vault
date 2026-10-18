@@ -59,4 +59,6 @@ If a migration fails, leave app services stopped and inspect its error. Do not e
 
 Commander construction warnings include colour-choice controls for commanders such as The Prismatic Piper. These deck preferences are stored by additive migration 0002 and included in database backups; they do not change physical stock.
 
+Migration 0003 backfills searchable names and adds PostgreSQL trigram indexes. Allow extra migration time for an existing catalogue. The Compose database owner can install the bundled `pg_trgm` extension; with an externally managed database, have its administrator provision that extension before migrating. Downgrading removes the indexes and derived names while retaining the extension and physical inventory.
+
 The collection UUID scopes all private data. Future account support can introduce identities and memberships without changing printing identities or existing physical balances. V1 has no administration, credentials or access control within the app.
