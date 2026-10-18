@@ -3,6 +3,7 @@ import { type Location, send, useAction, useResource } from './api';
 import { Notice } from './components';
 import CardDetail from './CardDetail';
 import Library from './Library';
+import Scan from './Scan';
 import Decks, { DeckWorkspace } from './Decks';
 
 function Storage() {
@@ -82,6 +83,7 @@ export default function App() {
             Library
           </NavLink>
           <NavLink to="/decks">Decks</NavLink>
+          <NavLink to="/scan">Scan</NavLink>
           <NavLink to="/storage">Storage</NavLink>
         </nav>
         <span className="local-badge">
@@ -113,6 +115,7 @@ export default function App() {
           <Route path="/" element={<Library />} />
           <Route path="/cards/:id" element={<CardDetail />} />
           <Route path="/storage" element={<Storage />} />
+          <Route path="/scan" element={<Scan />} />
           <Route path="/decks" element={<Decks />} />
           <Route path="/decks/:id" element={<DeckWorkspace />} />
           <Route
