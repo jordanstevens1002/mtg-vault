@@ -121,3 +121,18 @@ class ValidationView(BaseModel):
     catalogue_updated_at: datetime | None
     findings: list[Finding]
     validated: bool
+
+
+class ImportErrorView(BaseModel):
+    line: int
+    error: str
+
+
+class ImportPreview(BaseModel):
+    kind: str
+    rows: list[dict[str, object]]
+    errors: list[ImportErrorView]
+    quantity: int
+    owned_before: int
+    mode: str
+    preview_hash: str

@@ -278,6 +278,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/imports/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview */
+        post: operations["preview_api_v1_imports_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm */
+        post: operations["confirm_api_v1_imports_confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exports/collection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Collection */
+        get: operations["export_collection_api_v1_exports_collection_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exports/decks/{deck_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Deck */
+        get: operations["export_deck_api_v1_exports_decks__deck_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health": {
         parameters: {
             query?: never;
@@ -444,6 +512,34 @@ export interface components {
             /** Cover Id */
             cover_id: string | null;
         };
+        /** ConfirmInput */
+        ConfirmInput: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "collection" | "decklist";
+            /** Content */
+            content: string;
+            /**
+             * Deck Name
+             * @default Imported deck
+             */
+            deck_name: string;
+            /**
+             * Deck Format
+             * @default commander
+             * @enum {string}
+             */
+            deck_format: "commander" | "casual";
+            /**
+             * Operation Id
+             * Format: uuid
+             */
+            operation_id: string;
+            /** Preview Hash */
+            preview_hash: string;
+        };
         /** CoverInput */
         CoverInput: {
             /**
@@ -573,6 +669,53 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** ImportErrorView */
+        ImportErrorView: {
+            /** Line */
+            line: number;
+            /** Error */
+            error: string;
+        };
+        /** ImportInput */
+        ImportInput: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "collection" | "decklist";
+            /** Content */
+            content: string;
+            /**
+             * Deck Name
+             * @default Imported deck
+             */
+            deck_name: string;
+            /**
+             * Deck Format
+             * @default commander
+             * @enum {string}
+             */
+            deck_format: "commander" | "casual";
+        };
+        /** ImportPreview */
+        ImportPreview: {
+            /** Kind */
+            kind: string;
+            /** Rows */
+            rows: {
+                [key: string]: unknown;
+            }[];
+            /** Errors */
+            errors: components["schemas"]["ImportErrorView"][];
+            /** Quantity */
+            quantity: number;
+            /** Owned Before */
+            owned_before: number;
+            /** Mode */
+            mode: string;
+            /** Preview Hash */
+            preview_hash: string;
         };
         /** LocationView */
         LocationView: {
@@ -1288,6 +1431,125 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ValidationView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_api_v1_imports_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_api_v1_imports_confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_collection_api_v1_exports_collection_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    export_deck_api_v1_exports_decks__deck_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deck_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

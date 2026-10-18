@@ -4,6 +4,7 @@ import { Notice } from './components';
 import CardDetail from './CardDetail';
 import Library from './Library';
 import Scan from './Scan';
+import Portability from './Portability';
 import Decks, { DeckWorkspace } from './Decks';
 
 function Storage() {
@@ -85,6 +86,7 @@ export default function App() {
           <NavLink to="/decks">Decks</NavLink>
           <NavLink to="/scan">Scan</NavLink>
           <NavLink to="/storage">Storage</NavLink>
+          <NavLink to="/data">Import / export</NavLink>
         </nav>
         <span className="local-badge">
           <i />
@@ -116,6 +118,7 @@ export default function App() {
           <Route path="/cards/:id" element={<CardDetail />} />
           <Route path="/storage" element={<Storage />} />
           <Route path="/scan" element={<Scan />} />
+          <Route path="/data" element={<Portability />} />
           <Route path="/decks" element={<Decks />} />
           <Route path="/decks/:id" element={<DeckWorkspace />} />
           <Route
