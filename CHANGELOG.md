@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Review updates: selectable local PaddleOCR, mana-aware name recognition, MTG mana symbols, revised navigation, dependent type/subtype dropdowns, a mana-pip cost builder and first-added printing covers.
+
 - Public GPL-3.0-only repository, contribution guidelines, protected main/develop branches, issue milestones and a delivery board.
 - React/TypeScript interface and FastAPI API backed by collection-scoped PostgreSQL, Alembic migrations and Docker Compose.
 - Locally synchronised Scryfall catalogue, translated and multi-face name searches, cached printing images and independent cover preferences.

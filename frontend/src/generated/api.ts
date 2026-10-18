@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/card-filters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Card Filters */
+        get: operations["card_filters_api_v1_card_filters_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cards/{card_id}": {
         parameters: {
             query?: never;
@@ -499,6 +516,17 @@ export interface components {
             /** Balances */
             balances: components["schemas"]["BalanceView"][];
         };
+        /** CardFilters */
+        CardFilters: {
+            /** Types */
+            types: string[];
+            /** Subtypes */
+            subtypes: {
+                [key: string]: string[];
+            };
+            /** All Subtypes */
+            all_subtypes: string[];
+        };
         /** CardPage */
         CardPage: {
             /** Items */
@@ -954,6 +982,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    card_filters_api_v1_card_filters_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardFilters"];
                 };
             };
         };

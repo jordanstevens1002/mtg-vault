@@ -42,6 +42,12 @@ class CardPage(BaseModel):
     limit: int
 
 
+class CardFilters(BaseModel):
+    types: list[str]
+    subtypes: dict[str, list[str]]
+    all_subtypes: list[str]
+
+
 class PrintingView(BaseModel):
     id: UUID
     data: CardData

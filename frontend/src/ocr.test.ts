@@ -1,4 +1,4 @@
-import { parseOCR, titleFromFragments } from './ocr';
+import { cardFrame, parseOCR, titleFromFragments } from './ocr';
 
 it('extracts a readable name and optional printing hints', () => {
   expect(parseOCR('Plains\n', '0250 C\nM21 • EN')).toEqual({
@@ -8,12 +8,30 @@ it('extracts a readable name and optional printing hints', () => {
   });
 });
 
+it('retains punctuation and digits that are part of real card names', () => {
+  expect(parseOCR('Black Waltz No. 3', '').name).toBe('Black Waltz No. 3');
+  expect(parseOCR('B.F.M. (Big Furry Monster)', '').name).toBe('B.F.M. (Big Furry Monster)');
+});
+
 it('does not invent a name from an unreadable capture', () => {
   expect(parseOCR('## @@@', '')).toEqual({
     name: '',
     set: undefined,
     collector: undefined,
   });
+});
+
+it.each([
+  [1280, 960],
+  [1920, 1080],
+  [720, 1280],
+])('keeps the capture guide aligned with %s×%s camera frames', (width, height) => {
+  const frame = cardFrame(width, height);
+  expect(frame.width / frame.height).toBeCloseTo(488 / 680);
+  expect(frame.width).toBeLessThanOrEqual(width * 0.9 + 1e-6);
+  expect(frame.height).toBeLessThanOrEqual(height * 0.88 + 1e-6);
+  expect(frame.x + frame.width / 2).toBeCloseTo(width / 2);
+  expect(frame.y + frame.height / 2).toBeCloseTo(height / 2);
 });
 
 it('excludes the separated mana group using geometry, including letters misread from symbols', () => {

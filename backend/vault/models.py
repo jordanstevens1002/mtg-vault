@@ -37,6 +37,7 @@ class Card(Base):
     )
     id: Mapped[UUID] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(index=True)
+    type_line: Mapped[str] = mapped_column(default="", server_default="", index=True)
     data: Mapped[dict[str, Any]] = mapped_column(JSONB)
 
 

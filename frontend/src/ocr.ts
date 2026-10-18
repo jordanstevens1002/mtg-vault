@@ -6,6 +6,12 @@ export interface TextFragment {
   y1: number;
 }
 
+export function cardFrame(width: number, height: number) {
+  const cardWidth = Math.min(width * 0.9, (height * 0.88 * 488) / 680);
+  const cardHeight = (cardWidth * 680) / 488;
+  return { x: (width - cardWidth) / 2, y: (height - cardHeight) / 2, width: cardWidth, height: cardHeight };
+}
+
 // Mana occupies the right of the name bar. Use geometry rather than deleting
 // trailing digits: names such as Pip-Boy 3000 and Black Waltz No. 3 are real.
 export function titleFromFragments(fragments: TextFragment[], width: number) {
@@ -31,7 +37,7 @@ export function parseOCR(title: string, footer: string) {
       .split('\n')
       .map((line) =>
         line
-          .replace(/[^\p{L}\p{N}\s,'’/-]/gu, '')
+          .replace(/[^\p{L}\p{N}\s,'’/.:&!?()_-]/gu, '')
           .replace(/\s+/g, ' ')
           .trim(),
       )

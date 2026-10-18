@@ -21,6 +21,7 @@ The first catalogue download runs in the background and may take several minutes
 
 - [Operator guide](docs/operations.md): proxy, synchronisation, backups, restore and upgrades
 - [Native formats](docs/formats.md): previewed collection CSV and planned decklists
+- [Library controls](docs/library-filters.md) and [local OCR engines](docs/scanning.md)
 - [Acceptance record](docs/acceptance.md): automated evidence and remaining hardware gates
 
 ## Development and verification

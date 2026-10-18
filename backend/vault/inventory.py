@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from vault.catalogue import require
 from vault.db import COLLECTION_ID, session
-from vault.models import Balance, Collection, Deck, Location, Operation, Printing
+from vault.models import Balance, Collection, Cover, Deck, Location, Operation, Printing
 from vault.schemas import LocationView, StockSummary
 
 router = APIRouter(prefix="/api/v1", tags=["inventory"])
@@ -146,6 +146,28 @@ def apply_movement(db: Session, body: Movement) -> dict[str, Any]:
     target = None
     if body.kind == "receipt":
         assert body.printing_id and body.destination
+        printing = require(db, Printing, body.printing_id)
+        if not db.get(Cover, (COLLECTION_ID, printing.card_id)):
+            # Older deployments have no scan timestamps. Prefer an existing owned
+            # printing in that case; otherwise this first receipt becomes the cover.
+            existing = db.scalar(
+                select(Printing.id)
+                .join(Balance, Balance.printing_id == Printing.id)
+                .where(
+                    Printing.card_id == printing.card_id,
+                    Balance.collection_id == COLLECTION_ID,
+                    Balance.quantity > 0,
+                )
+                .order_by(Balance.id)
+                .limit(1)
+            )
+            db.add(
+                Cover(
+                    collection_id=COLLECTION_ID,
+                    card_id=printing.card_id,
+                    printing_id=existing or printing.id,
+                )
+            )
         target = destination_balance(
             db, body.printing_id, body.finish, body.destination
         )
