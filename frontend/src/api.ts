@@ -4,6 +4,7 @@ import type { components } from './generated/api';
 export type CardData = components['schemas']['CardData'];
 export type CardSummary = components['schemas']['CardSummary'];
 export type CardPage = components['schemas']['CardPage'];
+export type CardFilters = components['schemas']['CardFilters'];
 export type CardDetail = components['schemas']['CardDetail'];
 export type Printing = components['schemas']['PrintingView'];
 export type Balance = components['schemas']['BalanceView'];

@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 from typing import Annotated, Any, Literal
 from typing import cast as type_cast
@@ -7,14 +8,16 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from sqlalchemy import Float, String, case, cast, func, or_, select
+from sqlalchemy import Float, String, Text, case, cast, func, or_, select
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Session
 
 from vault import scryfall
+from vault.card_types import type_options
 from vault.config import settings
 from vault.db import COLLECTION_ID, session
 from vault.models import Balance, Card, Cover, Printing, SyncState
-from vault.schemas import CardDetail, CardPage
+from vault.schemas import CardDetail, CardFilters, CardPage
 from vault.sync import upsert_batch
 
 router = APIRouter(prefix="/api/v1", tags=["catalogue"])
@@ -54,8 +57,8 @@ def cards(
     mana_min: float | None = None,
     mana_max: float | None = None,
     mana_cost: str = "",
-    card_type: str = "",
-    subtype: str = "",
+    card_type: str = Query("", max_length=80),
+    subtype: str = Query("", max_length=160),
     sort: Literal["name", "mana", "color", "type", "owned", "available"] = "name",
     offset: int = Query(0, ge=0),
     limit: int = Query(48, ge=1, le=100),
@@ -93,19 +96,41 @@ def cards(
     if mana_max is not None:
         query = query.where(mana <= mana_max)
     if mana_cost:
+        if not re.fullmatch(r"(?:\{[^{}]+\})+", mana_cost):
+            raise HTTPException(422, "Mana cost must contain mana symbols in braces")
+        tokens = sorted(re.findall(r"\{([^{}]+)\}", mana_cost.upper()))
+
+        def same_cost(value: Any) -> Any:
+            return func.array_sort(
+                func.string_to_array(func.btrim(value, "{}"), "}{")
+            ) == cast(tokens, ARRAY(Text))
+
+        faces = func.jsonb_array_elements(Card.data["card_faces"]).table_valued("value")
         query = query.where(
             or_(
-                Card.data["mana_cost"].astext == mana_cost.upper(),
-                Card.data["card_faces"].contains([{"mana_cost": mana_cost.upper()}]),
+                same_cost(Card.data["mana_cost"].astext),
+                select(1)
+                .select_from(faces)
+                .where(same_cost(cast(faces.c.value, JSONB)["mana_cost"].astext))
+                .correlate(Card)
+                .exists(),
             )
         )
-    for value, part in [(card_type, 1), (subtype, 2)]:
-        if value:
-            query = query.where(
-                func.split_part(Card.data["type_line"].astext, "—", part).ilike(
-                    f"%{value}%"
+    if card_type or subtype:
+        faces = (
+            func.regexp_split_to_table(Card.type_line, r"\s*//\s*")
+            .table_valued("value")
+            .render_derived()
+        )
+        matching = select(1).select_from(faces)
+        for value, part in [(card_type, 1), (subtype, 2)]:
+            if value:
+                matching = matching.where(
+                    func.split_part(faces.c.value, "—", part).op("~*")(
+                        r"\m" + re.escape(value) + r"\M"
+                    )
                 )
-            )
+        query = query.where(matching.correlate(Card).exists())
     ordering = {
         "name": Card.name,
         "mana": mana,
@@ -130,7 +155,18 @@ def cards(
             else db.scalar(
                 select(Printing.id)
                 .where(Printing.card_id == card.id)
-                .order_by(Printing.id)
+                .order_by(
+                    select(Balance.id)
+                    .where(
+                        Balance.printing_id == Printing.id,
+                        Balance.collection_id == COLLECTION_ID,
+                        Balance.quantity > 0,
+                    )
+                    .correlate(Printing)
+                    .exists()
+                    .desc(),
+                    Printing.id,
+                )
                 .limit(1)
             )
         )
@@ -146,6 +182,18 @@ def cards(
             }
         )
     return {"items": result, "total": total, "offset": offset, "limit": limit}
+
+
+@router.get("/card-filters", response_model=CardFilters)
+def card_filters(db: DB) -> dict[str, Any]:
+    options = type_options(list(db.scalars(select(Card.type_line).distinct())))
+    return {
+        "types": list(options),
+        "subtypes": options,
+        "all_subtypes": sorted(
+            {value for values in options.values() for value in values}
+        ),
+    }
 
 
 @router.get("/cards/{card_id}", response_model=CardDetail)
@@ -191,6 +239,9 @@ class CoverInput(BaseModel):
 
 @router.put("/cards/{card_id}/cover")
 def cover(card_id: UUID, body: CoverInput, db: DB) -> dict[str, str]:
+    from vault.inventory import lock_collection
+
+    lock_collection(db)
     printing = require(db, Printing, body.printing_id)
     if printing.card_id != card_id:
         raise HTTPException(422, "Cover must be a printing of this card")

@@ -30,7 +30,7 @@ test('Plains browsing, physical allocation and import preview work together', as
     .toBe(initial.in_decks + 3);
   await page.goto('/?q=Plains');
   await expect(page.getByRole('progressbar').first()).toHaveAttribute('value', String(initial.in_decks + 3));
-  await page.getByRole('link', { name: 'Import / export' }).click();
+  await page.getByRole('link', { name: 'Import Export' }).click();
   await page.getByRole('combobox', { name: 'Format', exact: true }).selectOption('decklist');
   await page.getByRole('textbox', { name: 'Or paste content' }).fill('[mainboard]\n2 Plains\n1 A Missing Card');
   await page.getByRole('button', { name: 'Preview import', exact: true }).click();
@@ -135,3 +135,35 @@ for (const engine of ['tesseract', 'paddle']) {
     expect(external).toEqual([]);
   });
 }
+
+test('library filter builders keep URL state and dependent subtype options', async ({ page }) => {
+  await page.goto('/?scope=catalogue');
+  const types = page.getByRole('combobox', { name: 'Card type' });
+  await expect(types.getByRole('option', { name: 'Land', exact: true })).toHaveCount(1);
+  await types.selectOption('Land');
+  const subtypes = page.getByRole('combobox', { name: 'Subtype' });
+  await expect(subtypes.getByRole('option', { name: 'Plains', exact: true })).toHaveCount(1);
+  await subtypes.selectOption('Plains');
+  await expect(page).toHaveURL(/subtype=Plains/);
+  await types.selectOption('Instant');
+  await expect(page).not.toHaveURL(/subtype=Plains/);
+  await expect(subtypes.getByRole('option', { name: 'Plains', exact: true })).toHaveCount(0);
+  await page.getByRole('textbox', { name: 'Search cards' }).fill('Lightning Bolt');
+  await page.getByRole('button', { name: 'Add Red mana', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Lightning Bolt', exact: true })).toBeVisible();
+  const bookmark = page.url();
+  await page.reload();
+  await expect(types).toHaveValue('Instant');
+  await expect(page.getByRole('button', { name: 'Remove Red mana pip 1' })).toBeVisible();
+  await page.getByRole('slider', { name: 'Generic mana' }).focus();
+  await page.getByRole('slider', { name: 'Generic mana' }).press('ArrowRight');
+  await page.getByRole('slider', { name: 'Generic mana' }).press('ArrowRight');
+  await expect(page).not.toHaveURL(bookmark);
+  await page.getByRole('button', { name: 'Clear mana cost' }).click();
+  await expect(page).not.toHaveURL(/mana_cost=/);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/?scope=catalogue&q=Plains');
+  await expect(page.getByRole('heading', { name: 'Plains', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+  await page.screenshot({ path: 'test-results/library-filters-mobile.png', fullPage: true });
+});

@@ -28,7 +28,12 @@ def upsert_batch(db: Session, rows: list[dict[str, Any]]) -> int:
         data = json.loads(json.dumps(raw, default=float))
         # Some non-game objects have no Oracle identity; retain a stable identity.
         card_id = UUID(data.get("oracle_id") or data["id"])
-        cards[card_id] = {"id": card_id, "name": data["name"], "data": data}
+        cards[card_id] = {
+            "id": card_id,
+            "name": data["name"],
+            "data": data,
+            "type_line": data.get("type_line", ""),
+        }
         prints[UUID(data["id"])] = {
             "id": UUID(data["id"]),
             "card_id": card_id,
@@ -46,7 +51,11 @@ def upsert_batch(db: Session, rows: list[dict[str, Any]]) -> int:
     db.execute(
         statement.on_conflict_do_update(
             index_elements=[Card.id],
-            set_={"name": statement.excluded.name, "data": statement.excluded.data},
+            set_={
+                "name": statement.excluded.name,
+                "data": statement.excluded.data,
+                "type_line": statement.excluded.type_line,
+            },
         )
     )
     statement = insert(Printing).values(list(prints.values()))

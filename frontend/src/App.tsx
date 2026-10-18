@@ -83,10 +83,10 @@ export default function App() {
           <NavLink to="/" end>
             Library
           </NavLink>
-          <NavLink to="/decks">Decks</NavLink>
           <NavLink to="/scan">Scan</NavLink>
+          <NavLink to="/decks">Decks</NavLink>
           <NavLink to="/storage">Storage</NavLink>
-          <NavLink to="/data">Import / export</NavLink>
+          <NavLink to="/data">Import Export</NavLink>
         </nav>
         <span className="local-badge">
           <i />

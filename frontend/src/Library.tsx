@@ -1,10 +1,14 @@
 import { Link, useSearchParams } from 'react-router-dom';
-import { type CardPage, useResource } from './api';
+import { type CardPage, type CardFilters, useResource } from './api';
 import { CardImage, Notice } from './components';
+import ManaCostBuilder, { ManaSymbol } from './ManaCostBuilder';
 
 export default function Library() {
   const [params, setParams] = useSearchParams();
   const resource = useResource<CardPage>(`/cards?${params}`);
+  const filters = useResource<CardFilters>('/card-filters');
+  const cardType = params.get('card_type') || '';
+  const subtypes = cardType ? filters.data?.subtypes?.[cardType] || [] : filters.data?.all_subtypes || [];
   const catalogue = params.get('scope') === 'catalogue';
   function change(key: string, value: string) {
     setParams((previous) => {
@@ -59,8 +63,8 @@ export default function Library() {
             onChange={(e) => change('q', e.target.value)}
           />
         </label>
-        <label className="colour-filter">
-          Colour identity
+        <fieldset className="colour-filter">
+          <legend>Colour identity</legend>
           <div className="colours">
             {['W', 'U', 'B', 'R', 'G'].map((colour, i) => (
               <button
@@ -78,10 +82,11 @@ export default function Library() {
                   setParams(next);
                 }}
               >
-                {colour}
+                <ManaSymbol symbol={colour} />
               </button>
             ))}
             <button
+              aria-label="Colourless"
               aria-pressed={params.has('colors') && !params.get('colors')}
               onClick={() => {
                 const next = new URLSearchParams(params);
@@ -90,13 +95,16 @@ export default function Library() {
                 setParams(next);
               }}
             >
-              C
+              <ManaSymbol symbol="C" />
             </button>
           </div>
-        </label>
+        </fieldset>
         <label>
           Colour match
-          <select value={params.get('color_mode') || 'within'} onChange={(e) => change('color_mode', e.target.value)}>
+          <select
+            value={params.get('color_mode') || 'within'}
+            onChange={(e) => change('color_mode', e.target.value)}
+          >
             <option value="within">Within selected colours</option>
             <option value="contains">Contains selected colours</option>
             <option value="exact">Exactly selected colours</option>
@@ -104,9 +112,55 @@ export default function Library() {
         </label>
         {filter('mana_min', 'Mana value from', 'Any', 'number')}
         {filter('mana_max', 'Mana value to', 'Any', 'number')}
-        {filter('mana_cost', 'Printed mana cost', '{2}{W}{W}')}
-        {filter('card_type', 'Card type', 'Creature')}
-        {filter('subtype', 'Subtype', 'Human')}
+        <label>
+          Card type
+          <select
+            value={cardType}
+            onChange={(event) => {
+              const value = event.target.value;
+              const next = new URLSearchParams(params);
+              if (value) next.set('card_type', value);
+              else next.delete('card_type');
+              const allowed = value
+                ? filters.data?.subtypes?.[value] || []
+                : filters.data?.all_subtypes || [];
+              if (!allowed.includes(next.get('subtype') || '')) next.delete('subtype');
+              next.delete('offset');
+              setParams(next);
+            }}
+          >
+            <option value="">Any card type</option>
+            {cardType && !filters.data?.types?.includes(cardType) && (
+              <option value={cardType}>{cardType}</option>
+            )}
+            {filters.data?.types?.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Subtype
+          <select
+            value={params.get('subtype') || ''}
+            onChange={(event) => change('subtype', event.target.value)}
+          >
+            <option value="">Any subtype</option>
+            {params.get('subtype') && !subtypes.includes(params.get('subtype')!) && (
+              <option value={params.get('subtype')!}>{params.get('subtype')}</option>
+            )}
+            {subtypes.map((subtype) => (
+              <option key={subtype} value={subtype}>
+                {subtype}
+              </option>
+            ))}
+          </select>
+        </label>
+        <ManaCostBuilder
+          value={params.get('mana_cost') || ''}
+          onChange={(value) => change('mana_cost', value)}
+        />
         <label>
           Sort by
           <select value={params.get('sort') || 'name'} onChange={(e) => change('sort', e.target.value)}>
@@ -128,7 +182,7 @@ export default function Library() {
           Clear filters
         </button>
       </section>
-      <Notice error={resource.error} />
+      <Notice error={resource.error || filters.error} />
       {resource.loading && (
         <p className="muted" role="status">
           Loading cards…

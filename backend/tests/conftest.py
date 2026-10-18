@@ -62,6 +62,7 @@ def plains(db: Session) -> tuple[Card, Printing, Printing]:
     card = Card(
         id=uuid4(),
         name="Plains",
+        type_line="Basic Land — Plains",
         data={
             "name": "Plains",
             "cmc": 0,

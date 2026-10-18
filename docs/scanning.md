@@ -10,6 +10,8 @@ to exclude the separated mana-cost group on the right. Tesseract uses single-lin
 segmentation for the name and sparse text for footer hints. Digits within real card
 names are preserved. Keep the card upright in the guide; use even lighting and
 manual correction when glare, perspective or unusual frames defeat recognition.
+The guide and crop use the same card rectangle for landscape and portrait camera
+streams; active previews do not add a minimum-height offset around the video.
 
 PaddleOCR is an alternative to try, not a measured accuracy guarantee. Its initial
 load is larger: approximately 21 MB of model archives plus ONNX runtime and worker

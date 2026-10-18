@@ -1,4 +1,4 @@
-import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, vi } from 'vitest';
 import App from './App';
@@ -43,7 +43,9 @@ it('groups a card and labels physical ownership accessibly', async () => {
   expect(await screen.findByRole('heading', { name: 'Plains' })).toBeTruthy();
   expect(screen.getByRole('progressbar', { name: 'Plains: 3 in decks out of 10 owned' })).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'White' }));
-  await waitFor(() => expect(fetch).toHaveBeenCalledWith(expect.stringContaining('colors=W'), expect.anything()));
+  await waitFor(() =>
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining('colors=W'), expect.anything()),
+  );
 });
 
 it('keeps filters from a bookmarked catalogue URL', async () => {
@@ -58,4 +60,62 @@ it('keeps filters from a bookmarked catalogue URL', async () => {
   );
   expect(screen.getByRole('textbox', { name: 'Search cards' }).getAttribute('value')).toBe('Plains');
   expect(await screen.findByRole('heading', { name: 'Explore the catalogue' })).toBeTruthy();
+});
+
+function filterCatalogue() {
+  const fetcher = vi.fn(async (url: string) => ({
+    ok: true,
+    json: async () =>
+      url.includes('/card-filters')
+        ? {
+            types: ['Creature', 'Land'],
+            subtypes: { Creature: ['Human', 'Wizard'], Land: ['Forest', 'Plains'] },
+            all_subtypes: ['Forest', 'Human', 'Plains', 'Wizard'],
+          }
+        : { items: [], total: 0 },
+  }));
+  vi.stubGlobal('fetch', fetcher);
+  return () =>
+    new URL([...fetcher.mock.calls].reverse().find(([url]) => url.includes('/cards?'))![0], 'http://vault')
+      .searchParams;
+}
+
+it('limits subtype options to the selected type and clears an incompatible subtype', async () => {
+  const params = filterCatalogue();
+  render(
+    <MemoryRouter>
+      <App />
+    </MemoryRouter>,
+  );
+  const type = screen.getByRole('combobox', { name: 'Card type' });
+  const subtype = screen.getByRole('combobox', { name: 'Subtype' });
+  await screen.findByRole('option', { name: 'Creature' });
+  fireEvent.change(type, { target: { value: 'Creature' } });
+  expect(within(subtype).queryByRole('option', { name: 'Forest' })).toBeNull();
+  fireEvent.change(subtype, { target: { value: 'Human' } });
+  await waitFor(() => expect(params().get('subtype')).toBe('Human'));
+  fireEvent.change(type, { target: { value: 'Land' } });
+  await waitFor(() => expect(params().has('subtype')).toBe(false));
+  expect(within(subtype).getByRole('option', { name: 'Plains' })).toBeTruthy();
+  expect(within(subtype).queryByRole('option', { name: 'Human' })).toBeNull();
+});
+
+it('builds an exact mana cost with repeated pips and a generic range, then removes and clears pips', async () => {
+  const params = filterCatalogue();
+  render(
+    <MemoryRouter>
+      <App />
+    </MemoryRouter>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Add White mana' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add White mana' }));
+  fireEvent.change(screen.getByRole('slider', { name: 'Generic mana' }), { target: { value: '2' } });
+  await waitFor(() => expect(params().get('mana_cost')).toBe('{2}{W}{W}'));
+  fireEvent.click(screen.getByRole('button', { name: 'Remove White mana pip 1' }));
+  await waitFor(() => expect(params().get('mana_cost')).toBe('{2}{W}'));
+  fireEvent.click(screen.getByRole('button', { name: 'Clear mana cost' }));
+  await waitFor(() => expect(params().has('mana_cost')).toBe(false));
+  fireEvent.change(screen.getByRole('slider', { name: 'Generic mana' }), { target: { value: '1' } });
+  fireEvent.change(screen.getByRole('slider', { name: 'Generic mana' }), { target: { value: '0' } });
+  await waitFor(() => expect(params().get('mana_cost')).toBe('{0}'));
 });

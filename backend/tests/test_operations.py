@@ -68,6 +68,7 @@ def test_upgrade_backfills_translated_and_face_names(db: Session) -> None:
     card_id, printing_id = uuid4(), uuid4()
     data = {
         "name": "Front // Back",
+        "type_line": "Creature — Human // Land — Forest",
         "printed_name": "Vorne // Hinten",
         "card_faces": [
             {"name": "Front", "printed_name": "Vorne"},
@@ -95,6 +96,12 @@ def test_upgrade_backfills_translated_and_face_names(db: Session) -> None:
         )
         assert names == "Front // Back\nVorne // Hinten\nFront\nVorne\nBack\nHinten"
         assert "Not a searchable name" not in names
+        assert (
+            connection.scalar(
+                text("SELECT type_line FROM cards WHERE id=:id"), {"id": card_id}
+            )
+            == data["type_line"]
+        )
         assert (
             connection.scalar(
                 text(

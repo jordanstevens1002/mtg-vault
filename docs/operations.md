@@ -61,4 +61,6 @@ Commander construction warnings include colour-choice controls for commanders su
 
 Migration 0003 backfills searchable names and adds PostgreSQL trigram indexes. Allow extra migration time for an existing catalogue. The Compose database owner can install the bundled `pg_trgm` extension; with an externally managed database, have its administrator provision that extension before migrating. Downgrading removes the indexes and derived names while retaining the extension and physical inventory.
 
+Migration 0004 backfills indexed type lines for the library dropdowns. PostgreSQL 18, supplied by Compose, is required for the order-independent mana-pip comparison. See [library controls](library-filters.md) for cover defaults and [scanning](scanning.md) for the optional locally hosted PaddleOCR model downloads.
+
 The collection UUID scopes all private data. Future account support can introduce identities and memberships without changing printing identities or existing physical balances. V1 has no administration, credentials or access control within the app.

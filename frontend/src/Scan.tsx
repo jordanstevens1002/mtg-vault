@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { type CardDetail, type CardPage, useAction, useResource } from './api';
 import { CardImage, Notice } from './components';
 import { StockForm } from './CardDetail';
-import { parseOCR } from './ocr';
+import { cardFrame, parseOCR } from './ocr';
 import { createLocalOCR, type LocalOCR, type OCREngine } from './localOCR';
 
 export default function Scan() {
@@ -15,6 +15,8 @@ export default function Scan() {
   );
   const mounted = useRef(true);
   const [camera, setCamera] = useState(false);
+  const [frameSize, setFrameSize] = useState({ width: 1280, height: 960 });
+  const guide = cardFrame(frameSize.width, frameSize.height);
   const [cameraError, setCameraError] = useState('');
   const [query, setQuery] = useState('');
   const [searched, setSearched] = useState('');
@@ -98,10 +100,7 @@ export default function Scan() {
       });
     }
     const ocr = await workers.current[engine]!;
-    const width = Math.min(source.width * 0.9, (source.height * 0.88 * 488) / 680);
-    const height = (width * 680) / 488;
-    const x = (source.width - width) / 2,
-      y = (source.height - height) / 2;
+    const { width, height, x, y } = cardFrame(source.width, source.height);
     function crop(top: number, size: number) {
       const canvas = document.createElement('canvas');
       canvas.width = 1300;
@@ -177,9 +176,28 @@ export default function Scan() {
             Try the alternative if names are unclear. Both run on your device; PaddleOCR takes longer to load
             the first time.
           </p>
-          <div className="camera-frame">
-            <video ref={video} muted playsInline aria-label="Card camera preview" />
-            {camera && <div className="scan-guide" />}
+          <div className={`camera-frame ${camera ? 'capturing' : ''}`}>
+            <video
+              ref={video}
+              muted
+              playsInline
+              aria-label="Card camera preview"
+              onLoadedMetadata={(event) => {
+                setFrameSize({
+                  width: event.currentTarget.videoWidth,
+                  height: event.currentTarget.videoHeight,
+                });
+              }}
+            />
+            {camera && (
+              <div
+                className="scan-guide"
+                style={{
+                  width: `${(100 * guide.width) / frameSize.width}%`,
+                  height: `${(100 * guide.height) / frameSize.height}%`,
+                }}
+              />
+            )}
             {!camera && (
               <span className="camera-idle">
                 ◈<small>Your camera starts only when you choose</small>
