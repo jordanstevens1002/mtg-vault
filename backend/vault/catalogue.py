@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy import Float, String, case, cast, func, or_, select
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Session
 
 from vault import scryfall
@@ -18,7 +19,7 @@ from vault.schemas import CardDetail, CardPage
 from vault.sync import upsert_batch
 
 router = APIRouter(prefix="/api/v1", tags=["catalogue"])
-DB = Annotated[Session, Depends(session)]
+DB = Annotated[Session, Depends(session, scope="function")]
 
 
 def require[T](db: Session, model: type[T], identity: Any) -> T:
@@ -70,12 +71,25 @@ def cards(
         query = query.where(owned > 0)
     if q:
         # Includes translated printed names and the individual names of card faces.
+        faces = func.jsonb_array_elements(Printing.data["card_faces"]).table_valued(
+            "value"
+        )
+        translated_face = (
+            select(1)
+            .select_from(faces)
+            .where(cast(faces.c.value, JSONB)["printed_name"].astext.ilike(f"%{q}%"))
+            .correlate(Printing)
+            .exists()
+        )
         query = query.where(
             or_(
                 Card.name.ilike(f"%{q}%"),
                 Card.id.in_(
                     select(Printing.card_id).where(
-                        cast(Printing.data, String).ilike(f"%{q}%")
+                        or_(
+                            Printing.data["printed_name"].astext.ilike(f"%{q}%"),
+                            translated_face,
+                        )
                     )
                 ),
             )

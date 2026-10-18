@@ -156,3 +156,25 @@ def test_bulk_batch_deduplicates_oracle_identity(db: Session) -> None:
     db.commit()
     assert len(db.query(Card).all()) == 1
     assert len(db.query(Printing).all()) == 2
+
+
+def test_name_search_excludes_rules_text_and_includes_translated_faces(
+    client: TestClient, db: Session, plains: Any
+) -> None:
+    from vault.sync import upsert_batch
+
+    upsert_batch(
+        db,
+        [
+            {
+                "id": str(uuid4()),
+                "oracle_id": str(uuid4()),
+                "name": "Other card",
+                "oracle_text": "Search for a Plains card.",
+                "card_faces": [{"printed_name": "Vorne"}, {"printed_name": "Hinten"}],
+            }
+        ],
+    )
+    db.commit()
+    assert client.get("/api/v1/cards?scope=catalogue&q=Plains").json()["total"] == 1
+    assert client.get("/api/v1/cards?scope=catalogue&q=Hinten").json()["total"] == 1
