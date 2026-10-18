@@ -82,6 +82,7 @@ class DeckSummary(BaseModel):
     format: str
     state: str
     quantity: int
+    commander_colors: dict[str, str] = Field(default_factory=dict)
 
 
 class EntryView(BaseModel):
@@ -114,6 +115,12 @@ class Finding(BaseModel):
     message: str
 
 
+class CommanderColorChoice(BaseModel):
+    card_id: UUID
+    name: str
+    color: str | None
+
+
 class ValidationView(BaseModel):
     format: str
     rules_date: str
@@ -121,6 +128,7 @@ class ValidationView(BaseModel):
     catalogue_updated_at: datetime | None
     findings: list[Finding]
     validated: bool
+    color_choices: list[CommanderColorChoice] = Field(default_factory=list)
 
 
 class ImportErrorView(BaseModel):

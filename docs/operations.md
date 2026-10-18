@@ -57,4 +57,6 @@ Use a matching application version initially, verify card/deck quantities, then 
 
 If a migration fails, leave app services stopped and inspect its error. Do not edit an already published migration. Restore the pre-upgrade dump with its matching application version when rollback requires data recovery. `docker compose down` retains volumes; `down --volumes` deletes the collection and must not be used for routine upgrades.
 
+Commander construction warnings include colour-choice controls for commanders such as The Prismatic Piper. These deck preferences are stored by additive migration 0002 and included in database backups; they do not change physical stock.
+
 The collection UUID scopes all private data. Future account support can introduce identities and memberships without changing printing identities or existing physical balances. V1 has no administration, credentials or access control within the app.

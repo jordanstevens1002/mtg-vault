@@ -101,3 +101,52 @@ def test_vehicle_and_front_face_eligibility() -> None:
         card("Walker", "Legendary Planeswalker", "Walker can be your commander.")
     )
     assert not eligible({"card_faces": [card("Front", "Sorcery"), card("Back")]})
+
+
+def test_chosen_colour_is_persisted_and_validated(
+    client: Any, db: Any, plains: Any
+) -> None:
+    from uuid import uuid4
+
+    from vault.models import Card
+
+    piper = Card(
+        id=uuid4(),
+        name="The Prismatic Piper",
+        data=card(
+            "The Prismatic Piper",
+            oracle="If The Prismatic Piper is your commander, choose a color before the game begins.",
+            colours=[],
+        ),
+    )
+    db.add(piper)
+    db.commit()
+    deck_id = client.post("/api/v1/decks", json={"name": "Chosen colour"}).json()["id"]
+    entries = [
+        {"card_id": str(piper.id), "section": "commander", "quantity": 1},
+        {"card_id": str(plains[0].id), "quantity": 99},
+    ]
+    assert (
+        client.put(
+            f"/api/v1/decks/{deck_id}/entries", json={"entries": entries}
+        ).status_code
+        == 200
+    )
+    missing = client.get(f"/api/v1/decks/{deck_id}/validation").json()
+    assert {f["code"] for f in missing["findings"]} == {"commander_color_choice"}
+    url = f"/api/v1/decks/{deck_id}/commander-colours"
+    assert client.put(url, json={"choices": {str(piper.id): "W"}}).status_code == 200
+    assert client.get(f"/api/v1/decks/{deck_id}/validation").json()["findings"] == []
+    assert client.get(f"/api/v1/decks/{deck_id}").json()["commander_colors"] == {
+        str(piper.id): "W"
+    }
+    assert client.put(url, json={"choices": {str(piper.id): "G"}}).status_code == 200
+    assert {
+        f["code"]
+        for f in client.get(f"/api/v1/decks/{deck_id}/validation").json()["findings"]
+    } == {"color_identity"}
+    assert (
+        client.put(url, json={"choices": {str(plains[0].id): "W"}}).status_code == 422
+    )
+    assert client.put(url, json={"choices": {str(piper.id): "X"}}).status_code == 422
+    assert client.get("/api/v1/summary").json()["owned"] == 0

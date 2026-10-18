@@ -278,6 +278,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/decks/{deck_id}/commander-colours": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Save Colors */
+        put: operations["save_colors_api_v1_decks__deck_id__commander_colours_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/imports/preview": {
         parameters: {
             query?: never;
@@ -512,6 +529,25 @@ export interface components {
             /** Cover Id */
             cover_id: string | null;
         };
+        /** ColorInput */
+        ColorInput: {
+            /** Choices */
+            choices: {
+                [key: string]: string;
+            };
+        };
+        /** CommanderColorChoice */
+        CommanderColorChoice: {
+            /**
+             * Card Id
+             * Format: uuid
+             */
+            card_id: string;
+            /** Name */
+            name: string;
+            /** Color */
+            color: string | null;
+        };
         /** ConfirmInput */
         ConfirmInput: {
             /**
@@ -563,6 +599,10 @@ export interface components {
             state: string;
             /** Quantity */
             quantity: number;
+            /** Commander Colors */
+            commander_colors?: {
+                [key: string]: string;
+            };
             /** Entries */
             entries: components["schemas"]["EntryView"][];
             /** Sources */
@@ -604,6 +644,10 @@ export interface components {
             state: string;
             /** Quantity */
             quantity: number;
+            /** Commander Colors */
+            commander_colors?: {
+                [key: string]: string;
+            };
         };
         /** DisassembleInput */
         DisassembleInput: {
@@ -860,6 +904,8 @@ export interface components {
             findings: components["schemas"]["Finding"][];
             /** Validated */
             validated: boolean;
+            /** Color Choices */
+            color_choices?: components["schemas"]["CommanderColorChoice"][];
         };
     };
     responses: never;
@@ -1431,6 +1477,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ValidationView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_colors_api_v1_decks__deck_id__commander_colours_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deck_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ColorInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: {
+                            [key: string]: string;
+                        };
+                    };
                 };
             };
             /** @description Validation Error */

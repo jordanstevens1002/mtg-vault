@@ -9,11 +9,11 @@ from collections import defaultdict
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from sqlalchemy.orm import Session
 
 from vault.decks import detail
-from vault.inventory import DB, scoped
+from vault.inventory import DB, Input, lock_collection, scoped
 from vault.models import Deck, SyncState
 from vault.schemas import ValidationView
 
@@ -121,7 +121,13 @@ def copy_limit(card: dict[str, Any]) -> int | None:
     return 1
 
 
-def validate(entries: list[dict[str, Any]]) -> list[dict[str, str]]:
+def chooses_color(card: dict[str, Any]) -> bool:
+    return "choose a color before the game begins" in text(card).lower()
+
+
+def validate(
+    entries: list[dict[str, Any]], choices: dict[str, str] | None = None
+) -> list[dict[str, str]]:
     findings = []
 
     def warn(code: str, message: str) -> None:
@@ -152,6 +158,18 @@ def validate(entries: list[dict[str, Any]]) -> list[dict[str, str]]:
     identity = set().union(
         *(set(e["data"].get("color_identity", [])) for e in commanders)
     )
+    missing_choice = False
+    for entry in commanders:
+        if chooses_color(entry["data"]):
+            choice = (choices or {}).get(entry["card_id"])
+            if choice in ("W", "U", "B", "R", "G"):
+                identity.add(choice)
+            else:
+                missing_choice = True
+                warn(
+                    "commander_color_choice",
+                    f"{entry['name']}: choose a colour before validating colour identity.",
+                )
     quantities: dict[str, int] = defaultdict(int)
     data_by_name = {}
     for entry in active:
@@ -176,7 +194,7 @@ def validate(entries: list[dict[str, Any]]) -> list[dict[str, str]]:
             }.items():
                 if re.search(r"\b" + land + r"\b", land_types.split("—")[-1]):
                     required.add(colour)
-        if commanders and not required <= identity:
+        if commanders and not missing_choice and not required <= identity:
             warn(
                 "color_identity",
                 f"{name}: outside the commander's colour identity or permitted basic land types.",
@@ -194,18 +212,53 @@ def validate(entries: list[dict[str, Any]]) -> list[dict[str, str]]:
 def report(db: Session, deck_id: UUID) -> dict[str, Any]:
     deck = scoped(db, Deck, deck_id)
     state = db.get(SyncState, 1)
+    entries = detail(deck_id, db)["entries"]
     return {
         "format": deck.format,
         "rules_date": RULES_DATE,
         "rules_url": RULES_URL,
         "catalogue_updated_at": state.last_success if state else None,
-        "findings": validate(detail(deck_id, db)["entries"])
+        "findings": validate(entries, deck.commander_colors)
         if deck.format == "commander"
         else [],
         "validated": deck.format == "commander",
+        "color_choices": [
+            {
+                "card_id": e["card_id"],
+                "name": e["name"],
+                "color": deck.commander_colors.get(e["card_id"]),
+            }
+            for e in entries
+            if e["section"] == "commander" and chooses_color(e["data"])
+        ],
     }
 
 
 @router.get("/{deck_id}/validation", response_model=ValidationView)
 def validation(deck_id: UUID, db: DB) -> dict[str, Any]:
     return report(db, deck_id)
+
+
+class ColorInput(Input):
+    choices: dict[UUID, str]
+
+
+@router.put("/{deck_id}/commander-colours")
+def save_colors(deck_id: UUID, body: ColorInput, db: DB) -> dict[str, dict[str, str]]:
+    lock_collection(db)
+    deck = scoped(db, Deck, deck_id)
+    allowed = {
+        e["card_id"]
+        for e in detail(deck_id, db)["entries"]
+        if e["section"] == "commander" and chooses_color(e["data"])
+    }
+    if any(
+        str(key) not in allowed or color not in ("W", "U", "B", "R", "G")
+        for key, color in body.choices.items()
+    ):
+        raise HTTPException(
+            422,
+            "Choose W, U, B, R or G for a current commander requiring a colour choice",
+        )
+    deck.commander_colors = {str(key): color for key, color in body.choices.items()}
+    return {"commander_colors": deck.commander_colors}

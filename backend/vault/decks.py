@@ -78,6 +78,7 @@ def deck_summary(db: DB, deck: Deck) -> dict[str, Any]:
         "format": deck.format,
         "state": deck.state,
         "quantity": int(quantity or 0),
+        "commander_colors": deck.commander_colors,
     }
 
 
