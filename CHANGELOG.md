@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Compact mana-cost dropdown retains selected pips when closed; local scanning now attempts enlarged bottom-left set/collector recognition and suggests only a unique matching English printing for confirmation.
+
 - Review updates: selectable local PaddleOCR, mana-aware name recognition, MTG mana symbols, revised navigation, dependent type/subtype dropdowns, a mana-pip cost builder and first-added printing covers.
 
 - Public GPL-3.0-only repository, contribution guidelines, protected main/develop branches, issue milestones and a delivery board.

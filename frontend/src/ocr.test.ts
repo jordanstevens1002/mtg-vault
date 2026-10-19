@@ -1,4 +1,12 @@
-import { cardFrame, parseOCR, titleFromFragments } from './ocr';
+import {
+  cardFrame,
+  parseOCR,
+  parsePrintingHints,
+  printingMatches,
+  readPrintingText,
+  titleFromFragments,
+} from './ocr';
+import { vi } from 'vitest';
 
 it('extracts a readable name and optional printing hints', () => {
   expect(parseOCR('Plains\n', '0250 C\nM21 • EN')).toEqual({
@@ -11,6 +19,59 @@ it('extracts a readable name and optional printing hints', () => {
 it('retains punctuation and digits that are part of real card names', () => {
   expect(parseOCR('Black Waltz No. 3', '').name).toBe('Black Waltz No. 3');
   expect(parseOCR('B.F.M. (Big Furry Monster)', '').name).toBe('B.F.M. (Big Furry Monster)');
+});
+
+it.each([
+  ['R 0017\nWOE • EN', 'woe', '0017'],
+  ['0250/280 C\nM21 EN', 'm21', '0250'],
+  ['R0806\nMSC · EN', 'msc', '0806'],
+  ['R 0806\nMSC « EN', 'msc', '0806'],
+  ['012a U\n2XM | EN', '2xm', '012a'],
+  ['123\n10E EN', '10e', '123'],
+  ['0250 C M21 EN © 2026 Wizards', 'm21', '0250'],
+])('extracts printing hints from %s', (footer, set, collector) => {
+  expect(parsePrintingHints(footer)).toEqual({ set, collector });
+});
+
+it('rejects conflicting hints and ignores copyright/artist text', () => {
+  expect(parsePrintingHints('© 2026 Wizards of the Coast\nArtist Name')).toEqual({
+    set: undefined,
+    collector: undefined,
+  });
+  expect(parsePrintingHints('R 0017\nC 0018\nWOE EN\nM21 EN')).toEqual({
+    set: undefined,
+    collector: undefined,
+  });
+  expect(parsePrintingHints('250 / 280 C\n0250 C\nM21 EN')).toEqual({ set: 'm21', collector: '0250' });
+});
+
+it('uses the wider footer only when needed and keeps name scanning viable after footer errors', async () => {
+  const image = document.createElement('canvas');
+  const read = vi.fn().mockResolvedValueOnce('R 0017\nWOE EN');
+  expect(await readPrintingText(read, image, image)).toBe('R 0017\nWOE EN');
+  expect(read).toHaveBeenCalledTimes(1);
+  read.mockReset().mockResolvedValueOnce('WOE EN').mockResolvedValueOnce('R 0017');
+  expect(parsePrintingHints(await readPrintingText(read, image, image))).toEqual({
+    set: 'woe',
+    collector: '0017',
+  });
+  read.mockReset().mockRejectedValue(new Error('Unclear footer'));
+  expect(parsePrintingHints(await readPrintingText(read, image, image))).toEqual({
+    set: undefined,
+    collector: undefined,
+  });
+});
+
+it('suggests only one exact English set/collector match and preserves manual choice on ambiguity', () => {
+  const a = { id: 'a', data: { set: 'm21', collector_number: '250', lang: 'en' } };
+  const b = { id: 'b', data: { set: 'lea', collector_number: '250', lang: 'en' } };
+  expect(printingMatches([b, a], { set: 'M21', collector: '0250' }).suggested).toBe('a');
+  expect(printingMatches([a, b], { collector: '250' }).suggested).toBe('');
+  expect(printingMatches([a, { ...a, id: 'alt' }], { set: 'm21', collector: '250' }).ambiguous).toBe(true);
+  expect(
+    printingMatches([{ ...a, data: { ...a.data, lang: 'fr' } }], { set: 'm21', collector: '250' }).suggested,
+  ).toBe('');
+  expect(printingMatches([a, b], { set: 'lea', collector: '999' }).printings[0].id).toBe('b');
 });
 
 it('does not invent a name from an unreadable capture', () => {

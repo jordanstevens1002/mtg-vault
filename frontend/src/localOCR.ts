@@ -1,8 +1,12 @@
-import { titleFromFragments } from './ocr';
+import { readPrintingText, titleFromFragments } from './ocr';
 
 export type OCREngine = 'tesseract' | 'paddle';
 export interface LocalOCR {
-  read(title: HTMLCanvasElement, footer: HTMLCanvasElement): Promise<{ title: string; footer: string }>;
+  read(
+    title: HTMLCanvasElement,
+    footer: HTMLCanvasElement,
+    fallback?: HTMLCanvasElement,
+  ): Promise<{ title: string; footer: string }>;
   dispose(): Promise<void>;
 }
 
@@ -24,7 +28,7 @@ export async function createLocalOCR(
     logger: (event) => progress(`${event.status} ${Math.round(event.progress * 100)}%`),
   });
   return {
-    async read(title, footer) {
+    async read(title, footer, fallback) {
       await worker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_LINE });
       const name = await worker.recognize(title, {}, { blocks: true });
       const words =
@@ -36,10 +40,14 @@ export async function createLocalOCR(
         ...word.bbox,
       }));
       await worker.setParameters({ tessedit_pageseg_mode: PSM.SPARSE_TEXT });
-      const hints = await worker.recognize(footer);
+      const hints = await readPrintingText(
+        async (image) => (await worker.recognize(image)).data.text,
+        footer,
+        fallback,
+      );
       return {
         title: titleFromFragments(fragments, title.width),
-        footer: hints.data.text,
+        footer: hints,
       };
     },
     async dispose() {

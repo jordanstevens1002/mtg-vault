@@ -8,7 +8,9 @@ subtypes such as Time Lord and whole plane names remain intact.
 Type names use Scryfall's canonical card-type vocabulary, verified 18 October 2026;
 words from joke type lines are not offered as additional card types.
 
-The Mana cost builder matches the complete cost, including repeated pips. Click a
+Open the **Mana cost** dropdown to edit the complete cost, including repeated pips.
+When closed, it shows only the selected cost (or **Any mana cost**). Click outside,
+tab out, or press Escape to close it without clearing the filter. Click a
 mana symbol to add a pip, set generic mana using the range control, and click a
 selected pip to remove it. The order of clicks does not affect matching. `{0}` is a
 zero-mana cost; clearing the builder removes the cost filter. Generic mana and the

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { type CardDetail, type CardPage, useAction, useResource } from './api';
 import { CardImage, Notice } from './components';
 import { StockForm } from './CardDetail';
-import { cardFrame, parseOCR } from './ocr';
+import { cardFrame, parseOCR, printingMatches } from './ocr';
 import { createLocalOCR, type LocalOCR, type OCREngine } from './localOCR';
 
 export default function Scan() {
@@ -27,6 +27,7 @@ export default function Scan() {
   const detail = useResource<CardDetail>(selected ? `/cards/${selected}` : null);
   const [hints, setHints] = useState<{ set?: string; collector?: string }>({});
   const [printingId, setPrintingId] = useState('');
+  const [printingTouched, setPrintingTouched] = useState(false);
   const [progress, setProgress] = useState('');
   const action = useAction();
   useEffect(() => {
@@ -101,17 +102,17 @@ export default function Scan() {
     }
     const ocr = await workers.current[engine]!;
     const { width, height, x, y } = cardFrame(source.width, source.height);
-    function crop(top: number, size: number) {
+    function crop(top: number, size: number, left = 0, fraction = 1) {
       const canvas = document.createElement('canvas');
       canvas.width = 1300;
-      canvas.height = Math.round((1300 * height * size) / width);
+      canvas.height = Math.round((1300 * height * size) / (width * fraction));
       const context = canvas.getContext('2d');
       if (!context) throw new Error('Your browser cannot capture a camera frame. Use manual search.');
       context.drawImage(
         source!,
-        x,
+        x + width * left,
         y + height * top,
-        width,
+        width * fraction,
         height * size,
         0,
         0,
@@ -128,11 +129,13 @@ export default function Scan() {
       context.putImageData(image, 0, 0);
       return canvas;
     }
-    const text = await ocr.read(crop(0.035, 0.085), crop(0.88, 0.12)).catch((error) => {
-      delete workers.current[engine];
-      void ocr.dispose();
-      throw error;
-    });
+    const text = await ocr
+      .read(crop(0.035, 0.085), crop(0.895, 0.105, 0.02, 0.56), crop(0.87, 0.13))
+      .catch((error) => {
+        delete workers.current[engine];
+        void ocr.dispose();
+        throw error;
+      });
     if (!mounted.current) return;
     const result = parseOCR(text.title, text.footer);
     setHints(result);
@@ -140,6 +143,7 @@ export default function Scan() {
     setSearched(result.name);
     setSelected('');
     setPrintingId('');
+    setPrintingTouched(false);
     if (!result.name)
       throw new Error(
         'No readable name found. Improve lighting, align the title inside the frame, or enter the name below.',
@@ -147,7 +151,9 @@ export default function Scan() {
     stop();
     setProgress('');
   }
-  const printing = detail.data?.printings.find((p) => p.id === printingId);
+  const matches = printingMatches(detail.data?.id === selected ? detail.data.printings : [], hints);
+  const chosenPrinting = printingTouched ? printingId : matches.suggested;
+  const printing = detail.data?.printings.find((p) => p.id === chosenPrinting);
   return (
     <>
       <p className="eyebrow">ONE CARD AT A TIME</p>
@@ -235,6 +241,7 @@ export default function Scan() {
               e.preventDefault();
               setSelected('');
               setPrintingId('');
+              setPrintingTouched(false);
               setSearched(query.trim());
             }}
           >
@@ -258,6 +265,7 @@ export default function Scan() {
                   onClick={() => {
                     setSelected(card.id);
                     setPrintingId('');
+                    setPrintingTouched(false);
                   }}
                 >
                   {card.name}
@@ -273,29 +281,30 @@ export default function Scan() {
               <strong>{detail.data.name}</strong>
               <p className="small muted">
                 Recognition hints: set {hints.set || 'unknown'} · collector {hints.collector || 'unknown'}.
-                Select the actual printing below.
+                {matches.suggested
+                  ? ' Suggested printing found; check its image and details before saving.'
+                  : matches.ambiguous
+                    ? ' Multiple printings match these hints; choose the one you own.'
+                    : hints.set || hints.collector
+                      ? ' No unique printing match; check or choose the printing below.'
+                      : ' The footer was unreadable or missing; choose the printing manually.'}
               </p>
               <label>
                 Confirm printing
-                <select value={printingId} onChange={(e) => setPrintingId(e.target.value)} required>
+                <select
+                  value={chosenPrinting}
+                  onChange={(e) => {
+                    setPrintingId(e.target.value);
+                    setPrintingTouched(true);
+                  }}
+                  required
+                >
                   <option value="">Choose the printing you own</option>
-                  {[...detail.data.printings]
-                    .sort(
-                      (a, b) =>
-                        Number(
-                          b.data.set === hints.set &&
-                            (!hints.collector || b.data.collector_number === hints.collector),
-                        ) -
-                        Number(
-                          a.data.set === hints.set &&
-                            (!hints.collector || a.data.collector_number === hints.collector),
-                        ),
-                    )
-                    .map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.data.set_name || p.data.set} · #{p.data.collector_number} · {p.data.lang}
-                      </option>
-                    ))}
+                  {matches.printings.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.data.set_name || p.data.set} · #{p.data.collector_number} · {p.data.lang}
+                    </option>
+                  ))}
                 </select>
               </label>
               {printing && (
@@ -310,6 +319,8 @@ export default function Scan() {
                       setPrintingId('');
                       setSearched('');
                       setQuery('');
+                      setHints({});
+                      setPrintingTouched(false);
                     }}
                   />
                 </div>

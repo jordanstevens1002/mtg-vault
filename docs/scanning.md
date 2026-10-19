@@ -13,6 +13,20 @@ manual correction when glare, perspective or unusual frames defeat recognition.
 The guide and crop use the same card rectangle for landscape and portrait camera
 streams; active previews do not add a minimum-height offset around the video.
 
+Printing recognition first enlarges the bottom-left footer, where modern cards
+show their set code and collector number. If either hint is missing, it tries the
+wider footer. It recognises rarity-before-number and number-before-rarity layouts,
+older `number/total` text, padded numbers, suffixes and digit-leading set codes.
+Copyright text is ignored; contradictory readings remain unresolved. Footer failure
+does not discard a readable card name.
+
+After you choose the matching card, the scanner ranks its printings using those
+hints. A single English printing matching both set and collector number is selected
+as a suggestion, with its image shown for checking. Partial, missing or ambiguous
+hints leave the choice manual. You can change or clear a suggestion; nothing is
+saved until you confirm printing, finish, quantity and destination. Older cards
+without printed set/collector metadata and unclear captures still need manual choice.
+
 PaddleOCR is an alternative to try, not a measured accuracy guarantee. Its initial
 load is larger: approximately 21 MB of model archives plus ONNX runtime and worker
 assets. Inference uses a worker with single-threaded WASM, including on devices

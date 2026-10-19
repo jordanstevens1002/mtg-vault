@@ -107,6 +107,7 @@ it('builds an exact mana cost with repeated pips and a generic range, then remov
       <App />
     </MemoryRouter>,
   );
+  fireEvent.click(screen.getByLabelText('Mana cost options'));
   fireEvent.click(screen.getByRole('button', { name: 'Add White mana' }));
   fireEvent.click(screen.getByRole('button', { name: 'Add White mana' }));
   fireEvent.change(screen.getByRole('slider', { name: 'Generic mana' }), { target: { value: '2' } });
@@ -118,4 +119,25 @@ it('builds an exact mana cost with repeated pips and a generic range, then remov
   fireEvent.change(screen.getByRole('slider', { name: 'Generic mana' }), { target: { value: '1' } });
   fireEvent.change(screen.getByRole('slider', { name: 'Generic mana' }), { target: { value: '0' } });
   await waitFor(() => expect(params().get('mana_cost')).toBe('{0}'));
+});
+
+it('collapses the mana picker outside and on Escape without losing the selected cost', () => {
+  const params = filterCatalogue();
+  render(
+    <MemoryRouter initialEntries={['/?mana_cost=%7B2%7D%7BW%7D']}>
+      <App />
+    </MemoryRouter>,
+  );
+  const summary = screen.getByLabelText('Mana cost options: {2}{W}');
+  const dropdown = summary.closest('details')!;
+  expect(dropdown.open).toBe(false);
+  fireEvent.click(summary);
+  expect(dropdown.open).toBe(true);
+  fireEvent.pointerDown(screen.getByRole('heading', { name: 'Your library' }));
+  expect(dropdown.open).toBe(false);
+  expect(params().get('mana_cost')).toBe('{2}{W}');
+  fireEvent.click(summary);
+  fireEvent.keyDown(document, { key: 'Escape' });
+  expect(dropdown.open).toBe(false);
+  expect(document.activeElement).toBe(summary);
 });
