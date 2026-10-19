@@ -1,4 +1,4 @@
-import { titleFromFragments } from './ocr';
+import { readPrintingText, titleFromFragments } from './ocr';
 import type { LocalOCR } from './localOCR';
 
 interface Result {
@@ -8,11 +8,13 @@ interface Result {
 export async function createPaddleOCR(progress: (message: string) => void): Promise<LocalOCR> {
   const worker = new Worker(new URL('./paddle.worker.ts', import.meta.url), { type: 'module' });
   let sequence = 0;
+  let stopped = false;
   const pending = new Map<
     number,
     { resolve: (value: Result[] | null) => void; reject: (error: Error) => void }
   >();
   function fail(error: Error) {
+    stopped = true;
     pending.forEach((item) => item.reject(error));
     pending.clear();
     worker.terminate();
@@ -27,6 +29,7 @@ export async function createPaddleOCR(progress: (message: string) => void): Prom
     else item.resolve(event.data.result);
   };
   function ask(images?: ImageData[]): Promise<Result[] | null> {
+    if (stopped) return Promise.reject(new Error('PaddleOCR stopped; retry recognition.'));
     return new Promise((resolve, reject) => {
       const id = ++sequence;
       const timeout = window.setTimeout(
@@ -53,14 +56,24 @@ export async function createPaddleOCR(progress: (message: string) => void): Prom
     throw error;
   }
   return {
-    async read(title, footer) {
+    async read(title, footer, fallback) {
       progress('Reading the name and printing hints…');
-      const images = [title, footer].map((canvas) =>
+      const images = [title].map((canvas) =>
         canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height),
       );
       const results = await ask(images);
       if (!results) throw new Error('PaddleOCR returned no result.');
-      const [name, hints] = results;
+      const [name] = results;
+      const hints = await readPrintingText(
+        async (canvas) => {
+          const result = await ask([
+            canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height),
+          ]);
+          return result?.[0]?.items.map((item) => item.text).join('\n') || '';
+        },
+        footer,
+        fallback,
+      );
       const fragments = name.items.map((item) => ({
         text: item.text,
         x0: Math.min(...item.poly.map((point) => point[0])),
@@ -70,7 +83,7 @@ export async function createPaddleOCR(progress: (message: string) => void): Prom
       }));
       return {
         title: titleFromFragments(fragments, title.width),
-        footer: hints.items.map((item) => item.text).join('\n'),
+        footer: hints,
       };
     },
     async dispose() {
