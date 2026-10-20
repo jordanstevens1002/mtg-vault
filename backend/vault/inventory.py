@@ -251,18 +251,17 @@ def rename_location(location_id: UUID, body: NameInput, db: DB) -> dict[str, str
 
 @router.get("/summary", response_model=StockSummary)
 def summary(db: DB) -> dict[str, int]:
-    owned = db.scalar(
-        select(func.coalesce(func.sum(Balance.quantity), 0)).where(
-            Balance.collection_id == COLLECTION_ID
-        )
-    )
-    built = db.scalar(
-        select(func.coalesce(func.sum(Balance.quantity), 0)).where(
-            Balance.collection_id == COLLECTION_ID, Balance.deck_id.is_not(None)
-        )
-    )
+    # One statement gives both aggregates the same PostgreSQL snapshot.
+    owned, built = db.execute(
+        select(
+            func.coalesce(func.sum(Balance.quantity), 0),
+            func.coalesce(
+                func.sum(Balance.quantity).filter(Balance.deck_id.is_not(None)), 0
+            ),
+        ).where(Balance.collection_id == COLLECTION_ID)
+    ).one()
     return {
-        "owned": int(owned or 0),
-        "in_decks": int(built or 0),
-        "available": int((owned or 0) - (built or 0)),
+        "owned": int(owned),
+        "in_decks": int(built),
+        "available": int(owned - built),
     }

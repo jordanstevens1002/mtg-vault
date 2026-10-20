@@ -7,7 +7,7 @@ Implementation and automated validation began on 18 October 2026. No v1.0 tag or
 - React lint/type checks, component tests and production builds pass.
 - PostgreSQL tests cover grouped printings, filters, translated and multi-face names, stock transfers, repeated operations, competing mutations, independent plans, complete allocation, disassembly, Commander exceptions and previewed native imports.
 - The complete live Scryfall refresh stored 118,773 printings.
-- All 38 backend tests pass, including migration backfills, type/mana filters, first-printing covers and offline image-cache behaviour. On the full catalogue, the Plains name query improved from 15.48 seconds to 0.17 seconds after migration 0003.
+- All 39 backend tests pass, including migration backfills, type/mana filters, first-printing covers and offline image-cache behaviour. On the full catalogue, the Plains name query improved from 15.48 seconds to 0.17 seconds after migration 0003.
 - Both legacy JSON arrays and current gzip-compressed JSONL are covered. A failure after the first 500 catalogue rows rolls back the whole refresh.
 - Chromium against Docker Compose passes the Plains search → printing → receipt → planned deck → physical allocation journey and rejects an unresolved import.
 - A synthetic camera stream runs through the real bundled Tesseract engine; no stock is written until printing and quantity confirmation. No external browser OCR requests occur.
@@ -15,6 +15,12 @@ Implementation and automated validation began on 18 October 2026. No v1.0 tag or
 - Scanner follow-up: 28 frontend tests and six browser journeys cover application-launch PaddleOCR model loading without camera access, shared worker reuse across navigation, exact title/face selection, correctable card/printing selections and retry after preparation or inference failure.
 - Desktop and 390-pixel layouts are exercised. Permission denial and insecure camera contexts have component coverage.
 - Fresh Compose startup and migration succeeded. Backup and replacement restore retained the smoke inventory's 11 owned copies and 3 allocated copies.
+
+The release-review correctness follow-up adds a PostgreSQL snapshot regression and
+frontend delayed-response regressions: 39 backend and 31 frontend tests pass.
+Planned entry edits wait for fresh deck data after saving, aggregate stock totals
+share one statement snapshot, and background catalogue sync polls and refreshes
+active catalogue consumers. CI applies production lockfile constraints.
 
 ## Required before v1.0 publication
 

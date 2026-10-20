@@ -3,11 +3,11 @@ from typing import Any
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import event, select
 from sqlalchemy.orm import Session
 
 from vault.db import COLLECTION_ID, UNSORTED_ID
-from vault.inventory import Movement, movement
+from vault.inventory import Movement, movement, summary
 from vault.models import Balance, Deck
 
 
@@ -130,3 +130,52 @@ def test_named_storage(client: TestClient) -> None:
         client.post("/api/v1/locations", json={"name": "binder a"}).status_code == 409
     )
     assert len(client.get("/api/v1/locations").json()) == 2
+
+
+def test_summary_uses_one_snapshot_during_a_concurrent_receipt(
+    client: TestClient, db: Session, plains: Any
+) -> None:
+    assert (
+        client.post(
+            "/api/v1/inventory/movements", json=receipt(plains[1], 1)
+        ).status_code
+        == 200
+    )
+    deck = Deck(collection_id=COLLECTION_ID, name="Concurrent receipt", state="built")
+    db.add(deck)
+    db.commit()
+    deck_id, printing_id = deck.id, plains[1].id
+    committed = False
+
+    def commit_after_snapshot(
+        connection: Any,
+        cursor: Any,
+        statement: str,
+        parameters: Any,
+        context: Any,
+        executemany: bool,
+    ) -> None:
+        nonlocal committed
+        if committed or "sum(" not in statement.lower() or "balances" not in statement:
+            return
+        committed = True
+        # Commit on another connection after the aggregate's snapshot is taken.
+        with Session(db.bind) as writer, writer.begin():
+            writer.add(
+                Balance(
+                    collection_id=COLLECTION_ID,
+                    printing_id=printing_id,
+                    finish="nonfoil",
+                    placement=f"deck:{deck_id}:mainboard",
+                    deck_id=deck_id,
+                    quantity=99,
+                )
+            )
+
+    event.listen(db.bind, "after_cursor_execute", commit_after_snapshot)
+    try:
+        assert summary(db) == {"owned": 1, "in_decks": 0, "available": 1}
+        assert committed
+        assert summary(db) == {"owned": 100, "in_decks": 99, "available": 1}
+    finally:
+        event.remove(db.bind, "after_cursor_execute", commit_after_snapshot)
