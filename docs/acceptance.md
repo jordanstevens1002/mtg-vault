@@ -30,8 +30,13 @@ Scanner device feedback on 20 October: the maintainer reports successful iPhone
 scanning. Android Chrome exposed an ultrawide default lens with poor close focus;
 a camera selector now permits a remembered explicit lens choice. Thirty-six
 frontend tests cover exact camera constraints, switching/cleanup, preference
-reuse, missing-device fallback and enumeration failure. Android hardware retesting
-and the remaining versioned device/edge-case observations are still required.
+reuse, missing-device fallback and enumeration failure. After the selector update
+in PR #47, the maintainer confirmed scanning also works on the Android phone.
+The reported basic scanning flow now succeeds on desktop Firefox, iPhone and
+Android Chrome. Reported phones are a Samsung S22 using Chrome and an iPhone 17;
+their Android/iOS versions were described as "latest", with exact OS/browser
+version numbers not supplied. Device/browser versions and the expanded edge-case observations
+below remain to be recorded; these reports do not imply final release approval.
 
 ## Required before v1.0 publication
 
