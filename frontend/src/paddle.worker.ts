@@ -19,8 +19,11 @@ self.onmessage = async (event: MessageEvent<{ id: number; images?: ImageData[] }
     const cv = cvModule instanceof Promise ? await cvModule : cvModule;
     const mats = images?.map((image) => cv.matFromImageData(image));
     let result = null;
-    try { result = mats ? await ocr.predict(mats) : null; }
-    finally { mats?.forEach((mat) => mat.delete()); }
+    try {
+      result = mats ? await ocr.predict(mats) : null;
+    } finally {
+      mats?.forEach((mat) => mat.delete());
+    }
     self.postMessage({ id, result });
   } catch (error) {
     self.postMessage({ id, error: error instanceof Error ? error.message : String(error) });
