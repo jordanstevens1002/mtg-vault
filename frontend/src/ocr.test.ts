@@ -161,3 +161,14 @@ it('preselects exact titles and face names but leaves partial or ambiguous match
   expect(exactTitleMatch([...cards, { id: 'four', name: 'Plains', data: {} }], 'Plains')).toBe('');
   expect(exactTitleMatch(cards, '')).toBe('');
 });
+
+it('prefers Mountain over longer names and exact names on other cards faces', () => {
+  const cards = [
+    { id: 'longer', name: 'Mountain Bandit', data: {} },
+    { id: 'art-one', name: 'Mountain // Mountain', data: { card_faces: [{ name: 'Mountain' }] } },
+    { id: 'basic', name: 'Mountain', data: {} },
+    { id: 'art-two', name: 'Mountain // Mountain', data: { card_faces: [{ name: 'Mountain' }] } },
+  ];
+  expect(exactTitleMatch(cards, 'Mountain')).toBe('basic');
+  expect(exactTitleMatch(cards.filter((card) => card.id !== 'basic'), 'Mountain')).toBe('');
+});
