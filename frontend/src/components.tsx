@@ -18,7 +18,15 @@ export function Notice({ error, success }: { error?: string; success?: string })
   );
 }
 
-export function CardImage({ printingId, name, face = 0 }: { printingId?: string | null; name: string; face?: number }) {
+export function CardImage({
+  printingId,
+  name,
+  face = 0,
+}: {
+  printingId?: string | null;
+  name: string;
+  face?: number;
+}) {
   const [broken, setBroken] = useState('');
   const source = `/api/v1/images/${printingId}/${face}`;
   return (

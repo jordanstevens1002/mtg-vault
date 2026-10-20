@@ -14,7 +14,12 @@ await cp(
 );
 
 await mkdir('public/ocr/paddle/runtime', { recursive: true });
-for (const name of ['ort-wasm-simd-threaded.mjs', 'ort-wasm-simd-threaded.wasm', 'ort-wasm-simd-threaded.jsep.mjs', 'ort-wasm-simd-threaded.jsep.wasm']) {
+for (const name of [
+  'ort-wasm-simd-threaded.mjs',
+  'ort-wasm-simd-threaded.wasm',
+  'ort-wasm-simd-threaded.jsep.mjs',
+  'ort-wasm-simd-threaded.jsep.wasm',
+]) {
   await cp(`node_modules/onnxruntime-web/dist/${name}`, `public/ocr/paddle/runtime/${name}`);
 }
 await cp('vendor/paddle/LICENSE', 'public/ocr/paddle/LICENSE');

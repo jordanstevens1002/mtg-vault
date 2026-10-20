@@ -17,3 +17,11 @@ Use `Refs #123` in feature PRs. Release PRs targeting default branch `main` use 
 Keep application data scoped to a collection. Preserve physical stock invariants and cover transactional behaviour with PostgreSQL tests. Released migrations are immutable: introduce a new migration instead. Do not commit credentials, private collections or camera captures. AI assistance is welcome; contributors remain responsible for all submitted changes.
 
 Contributions are licensed under GPL-3.0-only. Report vulnerabilities according to SECURITY.md.
+
+For frontend changes, run `npm ci` in `frontend`, then `npm run format`,
+`npm run check` and `npm test`. CI enforces `npm run format:check` using the
+checked-in Prettier configuration. Generated API types, downloaded OCR models and
+vendored upstream files keep their own formats and are excluded. Keep responsive
+CSS grouped by breakpoint and update existing selector rules rather than adding
+scattered overrides. Backend checks use Ruff formatting and the production
+`backend/requirements.lock` constraints when installing development dependencies.

@@ -170,5 +170,10 @@ it('prefers Mountain over longer names and exact names on other cards faces', ()
     { id: 'art-two', name: 'Mountain // Mountain', data: { card_faces: [{ name: 'Mountain' }] } },
   ];
   expect(exactTitleMatch(cards, 'Mountain')).toBe('basic');
-  expect(exactTitleMatch(cards.filter((card) => card.id !== 'basic'), 'Mountain')).toBe('');
+  expect(
+    exactTitleMatch(
+      cards.filter((card) => card.id !== 'basic'),
+      'Mountain',
+    ),
+  ).toBe('');
 });

@@ -48,6 +48,7 @@ jobs:
           if [ -f frontend/package-lock.json ]; then
             cd frontend
             npm ci
+            npm run format:check
             npm run check
             npm test
             npm run build

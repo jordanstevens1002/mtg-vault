@@ -16,7 +16,9 @@ function Storage() {
     <>
       <p className="eyebrow">A PLACE FOR EVERY COPY</p>
       <h1>Bulk storage</h1>
-      <p className="muted">Name your boxes and binders. Move cards between them from a card's printing page.</p>
+      <p className="muted">
+        Name your boxes and binders. Move cards between them from a card's printing page.
+      </p>
       <form
         className="panel inline-form"
         onSubmit={(e) => {
@@ -72,9 +74,12 @@ export default function App() {
     void warmPaddleOCR().catch(() => undefined);
   }, []);
   const summary = useResource<{ owned: number; in_decks: number; available: number }>('/summary');
-  const sync = useResource<{ printings: number; running: boolean; error: string | null; last_success: string | null }>(
-    '/catalogue-sync',
-  );
+  const sync = useResource<{
+    printings: number;
+    running: boolean;
+    error: string | null;
+    last_success: string | null;
+  }>('/catalogue-sync');
   const previousSync = useRef<typeof sync.data>(undefined);
   useEffect(() => {
     const timer = window.setInterval(sync.reload, sync.data?.running ? 3000 : 30000);
@@ -85,7 +90,10 @@ export default function App() {
     const current = sync.data;
     if (!current) return;
     previousSync.current = current;
-    if (previous && ((previous.running && !current.running) || previous.last_success !== current.last_success)) {
+    if (
+      previous &&
+      ((previous.running && !current.running) || previous.last_success !== current.last_success)
+    ) {
       // Refresh active searches, filter options and details after external writes.
       window.dispatchEvent(new Event('vault:changed'));
     }

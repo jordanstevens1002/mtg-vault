@@ -98,7 +98,9 @@ export function DeckWorkspace() {
   // A successful PUT starts a background reload. Keep entry edits locked until
   // that reload replaces the object used to construct the submitted list.
   const entriesBusy = action.pending || (pendingEntries !== undefined && pendingEntries === deck);
-  async function saveEntries(next: { card_id: string; quantity: number; section: string; preferred_printing_id: string | null }[]) {
+  async function saveEntries(
+    next: { card_id: string; quantity: number; section: string; preferred_printing_id: string | null }[],
+  ) {
     if (entriesBusy) return;
     setPendingEntries(deck);
     try {
@@ -246,7 +248,10 @@ export function DeckWorkspace() {
                             }
                           : e,
                       )
-                    : [...entries, { card_id: selected, quantity, section, preferred_printing_id: preference || null }];
+                    : [
+                        ...entries,
+                        { card_id: selected, quantity, section, preferred_printing_id: preference || null },
+                      ];
                   await saveEntries(next);
                   setSelected('');
                   setQuery('');
@@ -308,7 +313,9 @@ export function DeckWorkspace() {
                   disabled={entriesBusy}
                   onClick={() =>
                     action.run(async () => {
-                      await saveEntries(entries.filter((e) => e.card_id !== entry.card_id || e.section !== entry.section));
+                      await saveEntries(
+                        entries.filter((e) => e.card_id !== entry.card_id || e.section !== entry.section),
+                      );
                       setSelections({});
                       setKey(operationId());
                     }, 'Entry removed')
@@ -331,10 +338,11 @@ export function DeckWorkspace() {
                   .map((source) => (
                     <div className="allocation-row" key={source.id}>
                       <span>
-                        {source.data.set_name || source.data.set?.toUpperCase()} #{source.data.collector_number} ·{' '}
-                        {source.data.lang} · {source.finish}
+                        {source.data.set_name || source.data.set?.toUpperCase()} #
+                        {source.data.collector_number} · {source.data.lang} · {source.finish}
                         <small>
-                          {locations.data?.find((l) => l.id === source.location_id)?.name} · {source.quantity} available
+                          {locations.data?.find((l) => l.id === source.location_id)?.name} · {source.quantity}{' '}
+                          available
                         </small>
                       </span>
                       <label>
@@ -345,7 +353,10 @@ export function DeckWorkspace() {
                           max={source.quantity}
                           value={selections[`${entry.section}:${source.id}`] || 0}
                           onChange={(e) => {
-                            setSelections({ ...selections, [`${entry.section}:${source.id}`]: Number(e.target.value) });
+                            setSelections({
+                              ...selections,
+                              [`${entry.section}:${source.id}`]: Number(e.target.value),
+                            });
                             setKey(operationId());
                           }}
                         />
@@ -361,8 +372,8 @@ export function DeckWorkspace() {
         <section className="panel form-stack">
           <h2>Build this deck</h2>
           <p className="muted">
-            Select the actual copies for every entry above. Your entire plan is allocated together; shortages leave it
-            unchanged.
+            Select the actual copies for every entry above. Your entire plan is allocated together; shortages
+            leave it unchanged.
           </p>
           <button
             className="primary"
@@ -390,7 +401,10 @@ export function DeckWorkspace() {
           onSubmit={(e) => {
             e.preventDefault();
             action.run(async () => {
-              await send(`/decks/${id}/disassemble`, { operation_id: key, location_id: destination.split(':')[1] });
+              await send(`/decks/${id}/disassemble`, {
+                operation_id: key,
+                location_id: destination.split(':')[1],
+              });
               setKey(operationId());
             }, 'Deck returned to storage and kept as a plan');
           }}

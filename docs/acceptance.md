@@ -20,7 +20,11 @@ The release-review correctness follow-up adds a PostgreSQL snapshot regression a
 frontend delayed-response regressions: 39 backend and 31 frontend tests pass.
 Planned entry edits wait for fresh deck data after saving, aggregate stock totals
 share one statement snapshot, and background catalogue sync polls and refreshes
-active catalogue consumers. CI applies production lockfile constraints.
+active catalogue consumers. CI applies production lockfile constraints. The stylesheet was consolidated into
+readable rules with one query per responsive breakpoint; all computed styles
+matched across 25 Chromium page/viewport comparisons. Explicit frontend Prettier
+settings and a CI format check cover owned source and tooling files while leaving
+generated types, vendor files and downloaded models in their upstream formats.
 
 ## Required before v1.0 publication
 

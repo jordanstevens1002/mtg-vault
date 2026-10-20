@@ -154,14 +154,29 @@ it('polls background sync and refreshes an initially empty catalogue when it com
   let complete = false;
   const fetcher = vi.fn(async (url: string) => ({
     ok: true,
-    json: async () => url.endsWith('/catalogue-sync')
-      ? { running: !complete, last_success: complete ? '2026-10-20T00:00:00Z' : null, printings: complete ? 1 : 0, error: null }
-      : url.includes('/cards?')
-        ? { items: complete ? [{ id: 'one', name: 'Plains', data: {}, owned: 0, in_decks: 0, available: 0 }] : [], total: complete ? 1 : 0 }
-        : {},
+    json: async () =>
+      url.endsWith('/catalogue-sync')
+        ? {
+            running: !complete,
+            last_success: complete ? '2026-10-20T00:00:00Z' : null,
+            printings: complete ? 1 : 0,
+            error: null,
+          }
+        : url.includes('/cards?')
+          ? {
+              items: complete
+                ? [{ id: 'one', name: 'Plains', data: {}, owned: 0, in_decks: 0, available: 0 }]
+                : [],
+              total: complete ? 1 : 0,
+            }
+          : {},
   }));
   vi.stubGlobal('fetch', fetcher);
-  const view = render(<MemoryRouter initialEntries={['/?scope=catalogue']}><App /></MemoryRouter>);
+  const view = render(
+    <MemoryRouter initialEntries={['/?scope=catalogue']}>
+      <App />
+    </MemoryRouter>,
+  );
   await screen.findByText('Catalogue synchronising…');
   await waitFor(() => expect(poll).toBeTypeOf('function'));
   expect(screen.queryByRole('heading', { name: 'Plains' })).toBeNull();

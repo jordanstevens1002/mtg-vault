@@ -71,7 +71,8 @@ export function StockForm({
         >
           {printings.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.data.set_name || p.data.set?.toUpperCase()} · #{p.data.collector_number} · {p.data.lang?.toUpperCase()}
+              {p.data.set_name || p.data.set?.toUpperCase()} · #{p.data.collector_number} ·{' '}
+              {p.data.lang?.toUpperCase()}
             </option>
           ))}
         </select>
@@ -125,8 +126,8 @@ export function StockForm({
         />
       )}
       <p className="muted small">
-        Confirm the physical printing, language and finish before adding. Adding to a built deck also increases your
-        owned quantity.
+        Confirm the physical printing, language and finish before adding. Adding to a built deck also
+        increases your owned quantity.
       </p>
       <button className="primary" disabled={action.pending || !printing || !destination}>
         Confirm and add copies
@@ -136,7 +137,15 @@ export function StockForm({
   );
 }
 
-function BalanceActions({ balance, locations, decks }: { balance: Balance; locations: Location[]; decks: Deck[] }) {
+function BalanceActions({
+  balance,
+  locations,
+  decks,
+}: {
+  balance: Balance;
+  locations: Location[];
+  decks: Deck[];
+}) {
   const [mode, setMode] = useState('transfer');
   const [quantity, setQuantity] = useState(1);
   const [destination, setDestination] = useState('location:00000000-0000-4000-8000-000000000002');
@@ -215,8 +224,8 @@ function BalanceActions({ balance, locations, decks }: { balance: Balance; locat
           </>
         ) : (
           <p className="notice error">
-            This reduces the number of copies you own. To remove a card from a deck while keeping it, choose Move
-            existing copies.
+            This reduces the number of copies you own. To remove a card from a deck while keeping it, choose
+            Move existing copies.
           </p>
         )}
         <button disabled={action.pending}>{mode === 'transfer' ? 'Move copies' : 'Confirm removal'}</button>
@@ -246,7 +255,9 @@ export default function CardDetail() {
     );
   const owned = data.balances.reduce((n, b) => n + b.quantity, 0);
   const allocated = data.balances.filter((b) => b.deck_id).reduce((n, b) => n + b.quantity, 0);
-  const printings = data.printings.filter((p) => showAll || data.balances.some((b) => b.printing_id === p.id));
+  const printings = data.printings.filter(
+    (p) => showAll || data.balances.some((b) => b.printing_id === p.id),
+  );
   return (
     <>
       <Link className="back" to={navigation.state?.back || '/'}>
@@ -297,7 +308,11 @@ export default function CardDetail() {
                   <strong>
                     {used} in decks / {total} owned
                   </strong>
-                  <progress value={used} max={total || 1} aria-label={`${used} in decks out of ${total} owned`} />
+                  <progress
+                    value={used}
+                    max={total || 1}
+                    aria-label={`${used} in decks out of ${total} owned`}
+                  />
                   <button
                     className="text-button"
                     disabled={action.pending}
@@ -323,7 +338,11 @@ export default function CardDetail() {
                           {balance.deck_id && ` · ${balance.section}`}
                         </span>
                       </p>
-                      <BalanceActions balance={balance} locations={locations.data || []} decks={decks.data || []} />
+                      <BalanceActions
+                        balance={balance}
+                        locations={locations.data || []}
+                        decks={decks.data || []}
+                      />
                     </div>
                   ))}
                 </article>
@@ -346,7 +365,12 @@ export default function CardDetail() {
             <h3>Other language printings</h3>
             <label>
               Language code
-              <input value={language} pattern="[a-z]{2,3}" required onChange={(e) => setLanguage(e.target.value)} />
+              <input
+                value={language}
+                pattern="[a-z]{2,3}"
+                required
+                onChange={(e) => setLanguage(e.target.value)}
+              />
             </label>
             <button disabled={action.pending}>Fetch printings</button>
           </form>
