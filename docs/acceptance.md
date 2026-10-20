@@ -33,7 +33,9 @@ frontend tests cover exact camera constraints, switching/cleanup, preference
 reuse, missing-device fallback and enumeration failure. After the selector update
 in PR #47, the maintainer confirmed scanning also works on the Android phone.
 The reported basic scanning flow now succeeds on desktop Firefox, iPhone and
-Android Chrome. Device/browser versions and the expanded edge-case observations
+Android Chrome. Reported phones are a Samsung S22 using Chrome and an iPhone 17;
+their Android/iOS versions were described as "latest", with exact OS/browser
+version numbers not supplied. Device/browser versions and the expanded edge-case observations
 below remain to be recorded; these reports do not imply final release approval.
 
 ## Required before v1.0 publication
