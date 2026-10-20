@@ -97,7 +97,11 @@ export function DeckWorkspace() {
   const deck = resource.data;
   // A successful PUT starts a background reload. Keep entry edits locked until
   // that reload replaces the object used to construct the submitted list.
-  const entriesBusy = action.pending || (pendingEntries !== undefined && pendingEntries === deck);
+  const entriesBusy =
+    action.pending ||
+    resource.loading ||
+    !!resource.error ||
+    (pendingEntries !== undefined && pendingEntries === deck);
   async function saveEntries(
     next: { card_id: string; quantity: number; section: string; preferred_printing_id: string | null }[],
   ) {
