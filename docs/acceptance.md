@@ -26,6 +26,13 @@ matched across 25 Chromium page/viewport comparisons. Explicit frontend Prettier
 settings and a CI format check cover owned source and tooling files while leaving
 generated types, vendor files and downloaded models in their upstream formats.
 
+Scanner device feedback on 20 October: the maintainer reports successful iPhone
+scanning. Android Chrome exposed an ultrawide default lens with poor close focus;
+a camera selector now permits a remembered explicit lens choice. Thirty-six
+frontend tests cover exact camera constraints, switching/cleanup, preference
+reuse, missing-device fallback and enumeration failure. Android hardware retesting
+and the remaining versioned device/edge-case observations are still required.
+
 ## Required before v1.0 publication
 
 - [ ] Android Chrome: use a real printed card over trusted HTTPS; verify title recognition, printing choice, finish, quantity, storage/deck destination and cancellation.

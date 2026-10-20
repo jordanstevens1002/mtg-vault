@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { type CardDetail, type CardPage, request, useAction, useResource } from './api';
 import { CardImage, Notice } from './components';
+import { requestCamera } from './camera';
 import { StockForm } from './CardDetail';
 import { cardFrame, exactTitleMatch, parseOCR, printingMatches } from './ocr';
 import { createLocalOCR, warmPaddleOCR, type LocalOCR, type OCREngine } from './localOCR';
@@ -18,6 +19,9 @@ export default function Scan() {
   const [frameSize, setFrameSize] = useState({ width: 1280, height: 960 });
   const guide = cardFrame(frameSize.width, frameSize.height);
   const [cameraError, setCameraError] = useState('');
+  const [cameraNotice, setCameraNotice] = useState('');
+  const [cameraId, setCameraId] = useState(() => localStorage.getItem('vault:camera') || '');
+  const [cameras, setCameras] = useState<{ deviceId: string; label: string }[]>([]);
   const [query, setQuery] = useState('');
   const [searched, setSearched] = useState('');
   const candidates = useResource<CardPage>(
@@ -47,8 +51,9 @@ export default function Scan() {
     setCamera(false);
     if (video.current) video.current.srcObject = null;
   }
-  async function start() {
+  async function start(deviceId = cameraId) {
     setCameraError('');
+    setCameraNotice('');
     if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
       setCameraError(
         'Camera access requires device-trusted HTTPS or localhost. You can use manual search below.',
@@ -56,24 +61,35 @@ export default function Scan() {
       return;
     }
     try {
-      const media = await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1280 },
-          height: { ideal: 960 },
-        },
-      });
+      // Mobile browsers may not release a lens while another stream is active.
+      stop();
+      const { media, reset } = await requestCamera(deviceId);
       if (!mounted.current) {
         media.getTracks().forEach((track) => track.stop());
         return;
       }
       stream.current = media;
+      if (reset) {
+        localStorage.removeItem('vault:camera');
+        setCameraId('');
+        setCameraNotice(
+          'Saved camera unavailable. Using the automatic rear camera; choose another lens below.',
+        );
+      }
       if (video.current) {
         video.current.srcObject = media;
         await video.current.play();
       }
       setCamera(true);
+      // Labels and additional cameras usually become available only after permission.
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices?.();
+        if (mounted.current)
+          setCameras((devices || []).filter((device) => device.kind === 'videoinput' && device.deviceId));
+      } catch {
+        if (mounted.current)
+          setCameraNotice('Camera list unavailable. You can still capture or retry the camera.');
+      }
     } catch (error) {
       stop();
       setCameraError(
@@ -190,6 +206,43 @@ export default function Scan() {
             Try the alternative if names are unclear. Both run on your device; PaddleOCR takes longer to load
             the first time. PaddleOCR prepares in the background when the app opens.
           </p>
+          {(cameras.length > 0 || cameraId) && (
+            <>
+              <label>
+                Camera
+                <select
+                  value={cameraId}
+                  disabled={action.pending}
+                  onChange={(event) => {
+                    const next = event.target.value;
+                    setCameraId(next);
+                    if (next) localStorage.setItem('vault:camera', next);
+                    else localStorage.removeItem('vault:camera');
+                    if (camera) void action.run(() => start(next), '');
+                  }}
+                >
+                  <option value="">Automatic rear camera</option>
+                  {cameraId && !cameras.some((device) => device.deviceId === cameraId) && (
+                    <option value={cameraId}>Saved camera</option>
+                  )}
+                  {cameras.map((device, index) => (
+                    <option key={device.deviceId} value={device.deviceId}>
+                      {device.label || `Camera ${index + 1}`}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p className="small muted">
+                Choose the standard rear lens (often 1×) if the ultrawide lens cannot focus. Your choice is
+                remembered in this browser.
+              </p>
+            </>
+          )}
+          {cameraNotice && (
+            <p role="status" className="small muted">
+              {cameraNotice}
+            </p>
+          )}
           <div className={`camera-frame ${camera ? 'capturing' : ''}`}>
             <video
               ref={video}

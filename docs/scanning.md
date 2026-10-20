@@ -62,3 +62,17 @@ a fallback when there is no exact full-name match. Partial, ambiguous or truncat
 results remain manual. Unique English set and collector hints select the printing.
 Use **Change card** or the printing selector to correct either choice. Saving still
 requires confirmation of the physical copies; recognition alone changes no stock.
+
+### Choosing a phone lens
+
+After starting the camera and granting permission, use **Camera** to select a
+specific lens. Rear-facing selection alone can choose an ultrawide (0.5×) lens
+on multi-camera phones. Try the standard rear camera (often labelled 1×), and
+hold the card far enough away for its title to become sharp before capture.
+The explicit camera choice is remembered in this browser for this site.
+
+Switching releases the old stream before opening the new lens. A missing saved
+camera falls back to automatic rear selection; denied permission still requires
+user action. Camera labels and available physical lenses depend on what the
+browser exposes; the app does not infer a universal 1× lens from device order.
+Camera access still starts only through the scanner controls.
