@@ -69,9 +69,7 @@ it('switches away from an ultrawide lens, releases tracks and remembers the sele
   await screen.findByRole('option', { name: 'Rear 1×' });
   expect(screen.queryByRole('option', { name: 'Microphone' })).toBeNull();
   await waitFor(() =>
-    expect(
-      (screen.getByRole('combobox', { name: 'Camera' }) as HTMLSelectElement).disabled,
-    ).toBe(false),
+    expect((screen.getByRole('combobox', { name: 'Camera' }) as HTMLSelectElement).disabled).toBe(false),
   );
   fireEvent.change(screen.getByRole('combobox', { name: 'Camera' }), {
     target: { value: 'main' },
