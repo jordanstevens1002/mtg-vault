@@ -63,6 +63,24 @@ it('blocks a second removal until delayed deck refresh replaces the submitted li
     </MemoryRouter>,
   );
   await screen.findByRole('heading', { name: '1 × A' });
+  // A refresh begun before the edit must finish before its snapshot can be edited.
+  delay = true;
+  act(() => window.dispatchEvent(new Event('vault:changed')));
+  await waitFor(() => expect(release).toBeTypeOf('function'));
+  expect((screen.getAllByRole('button', { name: 'Remove entry' })[0] as HTMLButtonElement).disabled).toBe(
+    true,
+  );
+  await act(async () => {
+    delay = false;
+    release!();
+    release = undefined;
+  });
+  await waitFor(() =>
+    expect((screen.getAllByRole('button', { name: 'Remove entry' })[0] as HTMLButtonElement).disabled).toBe(
+      false,
+    ),
+  );
+
   fireEvent.click(screen.getAllByRole('button', { name: 'Remove entry' })[0]);
   await screen.findByText('Entry removed');
   expect((screen.getAllByRole('button', { name: 'Remove entry' })[1] as HTMLButtonElement).disabled).toBe(

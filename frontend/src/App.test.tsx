@@ -146,11 +146,12 @@ it('collapses the mana picker outside and on Escape without losing the selected 
 
 it('polls background sync and refreshes an initially empty catalogue when it completes', async () => {
   let poll: (() => void) | undefined;
+  const nativeInterval = window.setInterval.bind(window);
   const timer = vi.spyOn(window, 'setInterval').mockImplementation((callback, delay) => {
     if (delay === 3000) poll = callback as () => void;
-    return 123 as unknown as ReturnType<typeof window.setInterval>;
+    return nativeInterval(callback, delay) as unknown as ReturnType<typeof window.setInterval>;
   });
-  vi.spyOn(window, 'clearInterval').mockImplementation(() => undefined);
+  vi.spyOn(window, 'clearInterval');
   let complete = false;
   const fetcher = vi.fn(async (url: string) => ({
     ok: true,
@@ -186,5 +187,5 @@ it('polls background sync and refreshes an initially empty catalogue when it com
   expect(screen.queryByText('Catalogue synchronising…')).toBeNull();
   expect(timer).toHaveBeenCalledWith(expect.any(Function), 30000);
   view.unmount();
-  expect(window.clearInterval).toHaveBeenCalledWith(123);
+  expect(window.clearInterval).toHaveBeenCalled();
 });

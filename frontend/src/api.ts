@@ -36,7 +36,10 @@ export function useResource<T>(path: string | null) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [version, setVersion] = useState(0);
-  const reload = useCallback(() => setVersion((v) => v + 1), []);
+  const reload = useCallback(() => {
+    setLoading(true);
+    setVersion((v) => v + 1);
+  }, []);
   useEffect(() => {
     window.addEventListener('vault:changed', reload);
     return () => window.removeEventListener('vault:changed', reload);
