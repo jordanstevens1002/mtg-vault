@@ -119,7 +119,7 @@ export function parseOCR(title: string, footer: string) {
   return { name, ...parsePrintingHints(footer) };
 }
 
-/** Select only an unambiguous, complete English title or face name. */
+/** Prefer a complete card name; consult individual faces only as a fallback. */
 export function exactTitleMatch<
   T extends {
     id: string;
@@ -130,10 +130,10 @@ export function exactTitleMatch<
   const normalise = (value: string) => value.trim().replace(/\s+/g, ' ').toLowerCase();
   const wanted = normalise(title);
   if (!wanted) return '';
+  const fullNames = cards.filter((card) => normalise(card.name) === wanted);
+  if (fullNames.length) return fullNames.length === 1 ? fullNames[0].id : '';
   const matches = cards.filter((card) =>
-    [card.name, ...(card.data.card_faces || []).map((face) => face.name || '')].some(
-      (name) => normalise(name) === wanted,
-    ),
+    (card.data.card_faces || []).some((face) => normalise(face.name || '') === wanted),
   );
   return matches.length === 1 ? matches[0].id : '';
 }

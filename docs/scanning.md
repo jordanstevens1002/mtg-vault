@@ -55,7 +55,10 @@ This shared worker survives page navigation; it never opens the camera. Preparat
 failures leave browsing available and capture retries preparation.
 
 An exact recognised English title (including a card face name) selects the card
-when the complete search result has one exact match. Partial, ambiguous or truncated
+when the complete search result has one exact full-name match. Full names take
+priority over matching face names: Mountain selects Mountain even when
+Mountain // Mountain and Mountain Bandit are also found. Face-name matching is
+a fallback when there is no exact full-name match. Partial, ambiguous or truncated
 results remain manual. Unique English set and collector hints select the printing.
 Use **Change card** or the printing selector to correct either choice. Saving still
 requires confirmation of the physical copies; recognition alone changes no stock.
