@@ -18,11 +18,9 @@
   "dependencies": {
     "@paddleocr/paddleocr-js": "^0.4.2",
     "@techstark/opencv-js": "4.10.0-release.1",
-    "@tesseract.js-data/eng": "^1.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-router-dom": "^7.9.0",
-    "tesseract.js": "^7.0.0"
+    "react-router-dom": "^7.9.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.0",

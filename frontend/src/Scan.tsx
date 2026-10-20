@@ -5,15 +5,11 @@ import { CardImage, Notice } from './components';
 import { requestCamera } from './camera';
 import { StockForm } from './CardDetail';
 import { cardFrame, exactTitleMatch, parseOCR, printingMatches } from './ocr';
-import { createLocalOCR, warmPaddleOCR, type LocalOCR, type OCREngine } from './localOCR';
+import { warmPaddleOCR } from './localOCR';
 
 export default function Scan() {
   const video = useRef<HTMLVideoElement>(null);
   const stream = useRef<MediaStream | null>(null);
-  const workers = useRef<Partial<Record<OCREngine, Promise<LocalOCR>>>>({});
-  const [engine, setEngine] = useState<OCREngine>(() =>
-    localStorage.getItem('vault:ocr-engine') === 'paddle' ? 'paddle' : 'tesseract',
-  );
   const mounted = useRef(true);
   const [camera, setCamera] = useState(false);
   const [frameSize, setFrameSize] = useState({ width: 1280, height: 960 });
@@ -39,10 +35,6 @@ export default function Scan() {
     return () => {
       mounted.current = false;
       stream.current?.getTracks().forEach((track) => track.stop());
-      Object.values(workers.current).forEach((worker) =>
-        worker?.then((w) => w.dispose()).catch(() => undefined),
-      );
-      workers.current = {};
     };
   }, []);
   function stop() {
@@ -108,15 +100,10 @@ export default function Scan() {
     const snapshot = source.getContext('2d');
     if (!snapshot) throw new Error('Frame capture unavailable; use manual search.');
     snapshot.drawImage(cameraVideo, 0, 0);
-    if (engine === 'tesseract' && !workers.current[engine]) {
-      workers.current[engine] = createLocalOCR(engine, (message) => {
-        if (mounted.current) setProgress(message);
-      }).catch((error) => {
-        delete workers.current[engine];
-        throw error;
-      });
-    }
-    const ocr = await (engine === 'paddle' ? warmPaddleOCR() : workers.current[engine]!);
+    setProgress('Preparing PaddleOCR…');
+    const ocr = await warmPaddleOCR();
+    if (!mounted.current) return;
+    setProgress('Reading the name and printing hints…');
     const { width, height, x, y } = cardFrame(source.width, source.height);
     function crop(top: number, size: number, left = 0, fraction = 1) {
       const canvas = document.createElement('canvas');
@@ -145,13 +132,7 @@ export default function Scan() {
       context.putImageData(image, 0, 0);
       return canvas;
     }
-    const text = await ocr
-      .read(crop(0.035, 0.085), crop(0.895, 0.105, 0.02, 0.56), crop(0.87, 0.13))
-      .catch((error) => {
-        delete workers.current[engine];
-        void ocr.dispose();
-        throw error;
-      });
+    const text = await ocr.read(crop(0.035, 0.085), crop(0.895, 0.105, 0.02, 0.56), crop(0.87, 0.13));
     if (!mounted.current) return;
     const result = parseOCR(text.title, text.footer);
     setHints(result);
@@ -187,24 +168,9 @@ export default function Scan() {
       </p>
       <div className="scan-layout">
         <section className="panel form-stack">
-          <label>
-            Text recognition
-            <select
-              value={engine}
-              disabled={action.pending}
-              onChange={(event) => {
-                const next = event.target.value as OCREngine;
-                setEngine(next);
-                localStorage.setItem('vault:ocr-engine', next);
-              }}
-            >
-              <option value="tesseract">Tesseract · English</option>
-              <option value="paddle">PaddleOCR · alternative mobile model</option>
-            </select>
-          </label>
           <p className="small muted">
-            Try the alternative if names are unclear. Both run on your device; PaddleOCR takes longer to load
-            the first time. PaddleOCR prepares in the background when the app opens.
+            PaddleOCR runs on your device and prepares in the background when the app opens. The first load
+            can take longer; manual search is always available.
           </p>
           {(cameras.length > 0 || cameraId) && (
             <>
