@@ -51,6 +51,18 @@ export async function createPaddleOCR(progress: (message: string) => void): Prom
   }
   try {
     await ask();
+    // Exercise detection and recognition before the first camera capture.
+    const sample = document.createElement('canvas');
+    sample.width = 320;
+    sample.height = 80;
+    const context = sample.getContext('2d');
+    if (!context) throw new Error('Recognition requires canvas support.');
+    context.fillStyle = 'white';
+    context.fillRect(0, 0, sample.width, sample.height);
+    context.fillStyle = 'black';
+    context.font = '32px sans-serif';
+    context.fillText('Magic card', 20, 50);
+    await ask([context.getImageData(0, 0, sample.width, sample.height)]);
   } catch (error) {
     worker.terminate();
     throw error;

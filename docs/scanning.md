@@ -47,3 +47,15 @@ Sources: [Tesseract image-quality guidance](https://tesseract-ocr.github.io/tess
 and [official PaddleOCR browser SDK](https://github.com/PaddlePaddle/PaddleOCR/tree/main/paddleocr-js/packages/core).
 PaddleOCR model weights are Apache-2.0; their licence is served at
 `/ocr/paddle/LICENSE` and retained under `frontend/vendor/paddle/`.
+
+### Preparation and automatic selection
+
+PaddleOCR loads and runs a small synthetic warmup when the application opens.
+This shared worker survives page navigation; it never opens the camera. Preparation
+failures leave browsing available and capture retries preparation.
+
+An exact recognised English title (including a card face name) selects the card
+when the complete search result has one exact match. Partial, ambiguous or truncated
+results remain manual. Unique English set and collector hints select the printing.
+Use **Change card** or the printing selector to correct either choice. Saving still
+requires confirmation of the physical copies; recognition alone changes no stock.

@@ -1,5 +1,6 @@
 import {
   cardFrame,
+  exactTitleMatch,
   parseOCR,
   parsePrintingHints,
   printingMatches,
@@ -146,4 +147,17 @@ it('keeps legitimate numbers inside card names and handles a title near the mana
       1300,
     ),
   ).toBe('A long name ending here');
+});
+
+it('preselects exact titles and face names but leaves partial or ambiguous matches manual', () => {
+  const cards = [
+    { id: 'one', name: 'Plains', data: {} },
+    { id: 'two', name: 'Snow-Covered Plains', data: {} },
+    { id: 'three', name: 'Fire // Ice', data: { card_faces: [{ name: 'Fire' }, { name: 'Ice' }] } },
+  ];
+  expect(exactTitleMatch(cards, '  PLAINS ')).toBe('one');
+  expect(exactTitleMatch(cards, 'Fire')).toBe('three');
+  expect(exactTitleMatch(cards, 'Plain')).toBe('');
+  expect(exactTitleMatch([...cards, { id: 'four', name: 'Plains', data: {} }], 'Plains')).toBe('');
+  expect(exactTitleMatch(cards, '')).toBe('');
 });

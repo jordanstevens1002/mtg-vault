@@ -12,6 +12,7 @@ Implementation and automated validation began on 18 October 2026. No v1.0 tag or
 - Chromium against Docker Compose passes the Plains search → printing → receipt → planned deck → physical allocation journey and rejects an unresolved import.
 - A synthetic camera stream runs through the real bundled Tesseract engine; no stock is written until printing and quantity confirmation. No external browser OCR requests occur.
 - Review updates add local PaddleOCR PP-OCRv5 mobile. Both real engines pass the synthetic non-land title/mana separation case and recover set/collector hints for a unique printing suggestion. The five browser journeys also cover manual printing override, compact mana dropdown closing/viewport fit, dependent subtype options and URL state. Twenty-five frontend tests cover geometry, numbered names, footer layouts/conflicts/failures, printing ambiguity, camera failures and filter controls.
+- Scanner follow-up: 28 frontend tests and six browser journeys cover application-launch PaddleOCR model loading without camera access, shared worker reuse across navigation, exact title/face selection, correctable card/printing selections and retry after preparation or inference failure.
 - Desktop and 390-pixel layouts are exercised. Permission denial and insecure camera contexts have component coverage.
 - Fresh Compose startup and migration succeeded. Backup and replacement restore retained the smoke inventory's 11 owned copies and 3 allocated copies.
 
