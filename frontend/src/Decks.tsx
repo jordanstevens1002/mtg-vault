@@ -93,7 +93,21 @@ export function DeckWorkspace() {
   const [selections, setSelections] = useState<Record<string, number>>({});
   const [destination, setDestination] = useState('location:00000000-0000-4000-8000-000000000002');
   const [key, setKey] = useState(operationId);
+  const [pendingEntries, setPendingEntries] = useState<DeckDetail>();
   const deck = resource.data;
+  // A successful PUT starts a background reload. Keep entry edits locked until
+  // that reload replaces the object used to construct the submitted list.
+  const entriesBusy = action.pending || (pendingEntries !== undefined && pendingEntries === deck);
+  async function saveEntries(next: { card_id: string; quantity: number; section: string; preferred_printing_id: string | null }[]) {
+    if (entriesBusy) return;
+    setPendingEntries(deck);
+    try {
+      await send(`/decks/${id}/entries`, { entries: next }, 'PUT');
+    } catch (error) {
+      setPendingEntries(undefined);
+      throw error;
+    }
+  }
   if (!deck)
     return (
       <>
@@ -131,6 +145,7 @@ export function DeckWorkspace() {
         </div>
       </div>
       <Notice {...action} error={resource.error || action.error} />
+      {resource.error && <button onClick={resource.reload}>Retry deck refresh</button>}
       {validation.data?.validated && (
         <details className="panel validation">
           <summary>
@@ -151,7 +166,7 @@ export function DeckWorkspace() {
               Colour for {choice.name}
               <select
                 value={choice.color || ''}
-                disabled={action.pending}
+                disabled={entriesBusy}
                 onChange={(event) =>
                   action.run(() => {
                     const choices = Object.fromEntries(
@@ -218,6 +233,7 @@ export function DeckWorkspace() {
               className="form-stack"
               onSubmit={(e) => {
                 e.preventDefault();
+                if (entriesBusy) return;
                 action.run(async () => {
                   const existing = entries.find((e) => e.card_id === selected && e.section === section);
                   const next = existing
@@ -231,7 +247,7 @@ export function DeckWorkspace() {
                           : e,
                       )
                     : [...entries, { card_id: selected, quantity, section, preferred_printing_id: preference || null }];
-                  await send(`/decks/${id}/entries`, { entries: next }, 'PUT');
+                  await saveEntries(next);
                   setSelected('');
                   setQuery('');
                   setSelections({});
@@ -265,7 +281,7 @@ export function DeckWorkspace() {
                   ))}
                 </select>
               </label>
-              <button className="primary" disabled={action.pending}>
+              <button className="primary" disabled={entriesBusy}>
                 Add to plan
               </button>
             </form>
@@ -289,14 +305,10 @@ export function DeckWorkspace() {
               </div>
               {deck.state === 'planned' && (
                 <button
-                  disabled={action.pending}
+                  disabled={entriesBusy}
                   onClick={() =>
                     action.run(async () => {
-                      await send(
-                        `/decks/${id}/entries`,
-                        { entries: entries.filter((e) => e.card_id !== entry.card_id || e.section !== entry.section) },
-                        'PUT',
-                      );
+                      await saveEntries(entries.filter((e) => e.card_id !== entry.card_id || e.section !== entry.section));
                       setSelections({});
                       setKey(operationId());
                     }, 'Entry removed')
@@ -354,7 +366,7 @@ export function DeckWorkspace() {
           </p>
           <button
             className="primary"
-            disabled={action.pending || !complete}
+            disabled={entriesBusy || !complete}
             onClick={() =>
               action.run(async () => {
                 const chosen = Object.entries(selections)
@@ -397,7 +409,7 @@ export function DeckWorkspace() {
               setKey(operationId());
             }}
           />
-          <button disabled={action.pending}>Confirm disassembly</button>
+          <button disabled={entriesBusy}>Confirm disassembly</button>
           <p className="small muted">
             To add, remove or move individual cards, open a card above and use its printing quantities.
           </p>

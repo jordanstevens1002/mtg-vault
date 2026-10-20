@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { warmPaddleOCR } from './localOCR';
 import { NavLink, Route, Routes } from 'react-router-dom';
 import { type Location, send, useAction, useResource } from './api';
@@ -75,6 +75,21 @@ export default function App() {
   const sync = useResource<{ printings: number; running: boolean; error: string | null; last_success: string | null }>(
     '/catalogue-sync',
   );
+  const previousSync = useRef<typeof sync.data>(undefined);
+  useEffect(() => {
+    const timer = window.setInterval(sync.reload, sync.data?.running ? 3000 : 30000);
+    return () => window.clearInterval(timer);
+  }, [sync.reload, sync.data?.running]);
+  useEffect(() => {
+    const previous = previousSync.current;
+    const current = sync.data;
+    if (!current) return;
+    previousSync.current = current;
+    if (previous && ((previous.running && !current.running) || previous.last_success !== current.last_success)) {
+      // Refresh active searches, filter options and details after external writes.
+      window.dispatchEvent(new Event('vault:changed'));
+    }
+  }, [sync.data]);
   return (
     <div className="app-shell">
       <header className="site-header">

@@ -36,7 +36,8 @@ jobs:
       - name: Backend
         run: |
           if [ -f backend/pyproject.toml ]; then
-            pip install -e 'backend[dev]'
+            pip install -c backend/requirements.lock -e 'backend[dev]'
+            pip check
             ruff check backend
             ruff format --check backend
             mypy --config-file backend/pyproject.toml backend/vault

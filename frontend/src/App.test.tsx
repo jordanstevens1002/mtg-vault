@@ -143,3 +143,33 @@ it('collapses the mana picker outside and on Escape without losing the selected 
   expect(dropdown.open).toBe(false);
   expect(document.activeElement).toBe(summary);
 });
+
+it('polls background sync and refreshes an initially empty catalogue when it completes', async () => {
+  let poll: (() => void) | undefined;
+  const timer = vi.spyOn(window, 'setInterval').mockImplementation((callback, delay) => {
+    if (delay === 3000) poll = callback as () => void;
+    return 123 as unknown as ReturnType<typeof window.setInterval>;
+  });
+  vi.spyOn(window, 'clearInterval').mockImplementation(() => undefined);
+  let complete = false;
+  const fetcher = vi.fn(async (url: string) => ({
+    ok: true,
+    json: async () => url.endsWith('/catalogue-sync')
+      ? { running: !complete, last_success: complete ? '2026-10-20T00:00:00Z' : null, printings: complete ? 1 : 0, error: null }
+      : url.includes('/cards?')
+        ? { items: complete ? [{ id: 'one', name: 'Plains', data: {}, owned: 0, in_decks: 0, available: 0 }] : [], total: complete ? 1 : 0 }
+        : {},
+  }));
+  vi.stubGlobal('fetch', fetcher);
+  const view = render(<MemoryRouter initialEntries={['/?scope=catalogue']}><App /></MemoryRouter>);
+  await screen.findByText('Catalogue synchronising…');
+  await waitFor(() => expect(poll).toBeTypeOf('function'));
+  expect(screen.queryByRole('heading', { name: 'Plains' })).toBeNull();
+  complete = true;
+  poll!();
+  await screen.findByRole('heading', { name: 'Plains' });
+  expect(screen.queryByText('Catalogue synchronising…')).toBeNull();
+  expect(timer).toHaveBeenCalledWith(expect.any(Function), 30000);
+  view.unmount();
+  expect(window.clearInterval).toHaveBeenCalledWith(123);
+});
