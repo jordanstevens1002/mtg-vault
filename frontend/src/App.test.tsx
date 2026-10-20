@@ -3,6 +3,8 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, vi } from 'vitest';
 import App from './App';
 
+vi.mock('./localOCR', () => ({ warmPaddleOCR: vi.fn(async () => ({})) }));
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();

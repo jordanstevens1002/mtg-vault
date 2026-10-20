@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { type CardDetail, type CardPage, useAction, useResource } from './api';
+import { type CardDetail, type CardPage, request, useAction, useResource } from './api';
 import { CardImage, Notice } from './components';
 import { StockForm } from './CardDetail';
-import { cardFrame, parseOCR, printingMatches } from './ocr';
-import { createLocalOCR, type LocalOCR, type OCREngine } from './localOCR';
+import { cardFrame, exactTitleMatch, parseOCR, printingMatches } from './ocr';
+import { createLocalOCR, warmPaddleOCR, type LocalOCR, type OCREngine } from './localOCR';
 
 export default function Scan() {
   const video = useRef<HTMLVideoElement>(null);
@@ -92,7 +92,7 @@ export default function Scan() {
     const snapshot = source.getContext('2d');
     if (!snapshot) throw new Error('Frame capture unavailable; use manual search.');
     snapshot.drawImage(cameraVideo, 0, 0);
-    if (!workers.current[engine]) {
+    if (engine === 'tesseract' && !workers.current[engine]) {
       workers.current[engine] = createLocalOCR(engine, (message) => {
         if (mounted.current) setProgress(message);
       }).catch((error) => {
@@ -100,7 +100,7 @@ export default function Scan() {
         throw error;
       });
     }
-    const ocr = await workers.current[engine]!;
+    const ocr = await (engine === 'paddle' ? warmPaddleOCR() : workers.current[engine]!);
     const { width, height, x, y } = cardFrame(source.width, source.height);
     function crop(top: number, size: number, left = 0, fraction = 1) {
       const canvas = document.createElement('canvas');
@@ -149,6 +149,14 @@ export default function Scan() {
         'No readable name found. Improve lighting, align the title inside the frame, or enter the name below.',
       );
     stop();
+    setProgress('Finding the recognised card…');
+    // Use this response directly, rather than stale results from a previous scan.
+    const page = await request<CardPage>(
+      `/cards?scope=catalogue&q=${encodeURIComponent(result.name)}&limit=100`,
+    );
+    if (!mounted.current) return;
+    // A truncated list cannot establish uniqueness.
+    if (page.total <= page.items.length) setSelected(exactTitleMatch(page.items, result.name));
     setProgress('');
   }
   const matches = printingMatches(detail.data?.id === selected ? detail.data.printings : [], hints);
@@ -180,7 +188,7 @@ export default function Scan() {
           </label>
           <p className="small muted">
             Try the alternative if names are unclear. Both run on your device; PaddleOCR takes longer to load
-            the first time.
+            the first time. PaddleOCR prepares in the background when the app opens.
           </p>
           <div className={`camera-frame ${camera ? 'capturing' : ''}`}>
             <video
@@ -217,7 +225,7 @@ export default function Scan() {
             <button
               className="primary"
               disabled={!camera || action.pending}
-              onClick={() => action.run(capture, 'Choose the matching card below')}
+              onClick={() => action.run(capture, 'Review the recognised card and printing below')}
             >
               Capture and recognise
             </button>
@@ -279,6 +287,15 @@ export default function Scan() {
           {detail.data?.id === selected && (
             <>
               <strong>{detail.data.name}</strong>
+              <button
+                onClick={() => {
+                  setSelected('');
+                  setPrintingId('');
+                  setPrintingTouched(false);
+                }}
+              >
+                Change card
+              </button>
               <p className="small muted">
                 Recognition hints: set {hints.set || 'unknown'} · collector {hints.collector || 'unknown'}.
                 {matches.suggested

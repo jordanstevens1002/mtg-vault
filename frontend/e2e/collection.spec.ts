@@ -86,9 +86,8 @@ test('local OCR recognises a captured frame and requires confirmation', async ({
   await page.getByRole('button', { name: 'Start camera', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Capture and recognise' })).toBeEnabled();
   await page.getByRole('button', { name: 'Capture and recognise' }).click();
-  await expect(page.getByRole('button', { name: 'Plains', exact: true })).toBeVisible({ timeout: 60000 });
+  await expect(page.getByRole('combobox', { name: 'Confirm printing', exact: true })).toBeVisible({ timeout: 60000 });
   expect((await (await request.get('/api/v1/summary')).json()).owned).toBe(initial.owned);
-  await page.getByRole('button', { name: 'Plains', exact: true }).click();
   await page.getByRole('combobox', { name: 'Confirm printing', exact: true }).selectOption({ index: 1 });
   await page.getByRole('button', { name: 'Confirm and add copies' }).click();
   await expect.poll(async () => (await (await request.get('/api/v1/summary')).json()).owned).toBe(initial.owned + 1);
@@ -132,10 +131,13 @@ for (const engine of ['tesseract', 'paddle']) {
       expect(page.getByRole('textbox', { name: 'Card name' })).toHaveValue('Lightning Bolt', { timeout: 120000 }),
       page.getByRole('alert').waitFor({ timeout: 120000 }).then(async () => { throw new Error(await page.getByRole('alert').innerText()); }),
     ]);
-    await page.getByRole('button', { name: 'Lightning Bolt', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Change card', exact: true })).toBeVisible();
     await expect(page.getByRole('combobox', { name: 'Confirm printing' })).toBeVisible();
     await expect(page.getByRole('combobox', { name: 'Confirm printing' }), await page.getByText(/^Recognition hints:/).innerText()).toHaveValue('7673784e-db4b-43a1-8d55-1bb9fc1e284f');
     await expect(page.getByText('Suggested printing found;', { exact: false })).toBeVisible();
+    await page.getByRole('button', { name: 'Change card', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Lightning Bolt', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Lightning Bolt', exact: true }).click();
     await page.getByRole('combobox', { name: 'Confirm printing' }).selectOption('');
     await expect(page.getByRole('combobox', { name: 'Confirm printing' })).toHaveValue('');
     await expect(page.getByRole('button', { name: 'Confirm and add copies' })).toHaveCount(0);
@@ -188,4 +190,27 @@ test('library filter builders keep URL state and dependent subtype options', asy
   await expect(page.getByRole('heading', { name: 'Plains', exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
   await page.screenshot({ path: 'test-results/library-filters-mobile.png', fullPage: true });
+});
+
+test('prepares PaddleOCR before camera access and reuses its worker across navigation', async ({ page }) => {
+  const workers: string[] = [];
+  const models = new Set<string>();
+  page.on('worker', (worker) => workers.push(worker.url()));
+  page.on('requestfinished', (request) => {
+    if (/\/ocr\/paddle\/(det|rec)\.tar$/.test(request.url())) models.add(request.url());
+  });
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
+      value: async () => {
+        throw new Error('Camera must not start during preparation');
+      },
+    });
+  });
+  await page.goto('/');
+  await expect.poll(() => models.size, { timeout: 60000 }).toBe(2);
+  await page.getByRole('link', { name: 'Scan', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Start camera', exact: true })).toBeVisible();
+  await page.getByRole('link', { name: 'Library', exact: true }).click();
+  await page.getByRole('link', { name: 'Scan', exact: true }).click();
+  expect(workers.filter((url) => url.includes('paddle.worker'))).toHaveLength(1);
 });

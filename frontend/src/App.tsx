@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { warmPaddleOCR } from './localOCR';
 import { NavLink, Route, Routes } from 'react-router-dom';
 import { type Location, send, useAction, useResource } from './api';
 import { Notice } from './components';
@@ -66,6 +68,9 @@ function Storage() {
 }
 
 export default function App() {
+  useEffect(() => {
+    void warmPaddleOCR().catch(() => undefined);
+  }, []);
   const summary = useResource<{ owned: number; in_decks: number; available: number }>('/summary');
   const sync = useResource<{ printings: number; running: boolean; error: string | null; last_success: string | null }>(
     '/catalogue-sync',
