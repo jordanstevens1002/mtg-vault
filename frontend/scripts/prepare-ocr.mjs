@@ -1,16 +1,10 @@
 import { createHash } from 'node:crypto';
 import { Buffer } from 'node:buffer';
-import { cp, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 
-await mkdir('public/ocr/core', { recursive: true });
-await mkdir('public/ocr/lang', { recursive: true });
-await cp('node_modules/tesseract.js/dist/worker.min.js', 'public/ocr/worker.min.js');
-await cp('node_modules/tesseract.js-core', 'public/ocr/core', {
-  recursive: true,
-});
-await cp(
-  'node_modules/@tesseract.js-data/eng/4.0.0_best_int/eng.traineddata.gz',
-  'public/ocr/lang/eng.traineddata.gz',
+// Remove retired generated assets on incremental builds without discarding cached Paddle models.
+await Promise.all(
+  ['core', 'lang', 'worker.min.js'].map((name) => rm(`public/ocr/${name}`, { recursive: true, force: true })),
 );
 
 await mkdir('public/ocr/paddle/runtime', { recursive: true });

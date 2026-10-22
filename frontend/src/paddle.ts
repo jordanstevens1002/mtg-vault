@@ -20,7 +20,7 @@ export async function createPaddleOCR(progress: (message: string) => void): Prom
     worker.terminate();
   }
   worker.onerror = (event) =>
-    fail(new Error(event.message || 'PaddleOCR could not start; retry or use Tesseract.'));
+    fail(new Error(event.message || 'PaddleOCR could not start; retry or use manual search.'));
   worker.onmessage = (event: MessageEvent<{ id: number; result: Result[] | null; error?: string }>) => {
     const item = pending.get(event.data.id);
     if (!item) return;
@@ -33,7 +33,7 @@ export async function createPaddleOCR(progress: (message: string) => void): Prom
     return new Promise((resolve, reject) => {
       const id = ++sequence;
       const timeout = window.setTimeout(
-        () => fail(new Error('PaddleOCR timed out; retry or use Tesseract.')),
+        () => fail(new Error('PaddleOCR timed out; retry or use manual search.')),
         120000,
       );
       pending.set(id, {
