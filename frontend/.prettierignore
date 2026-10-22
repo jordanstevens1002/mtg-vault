@@ -1,0 +1,7 @@
+dist/
+public/ocr/
+src/generated/
+vendor/
+playwright-report/
+test-results/
+*.tsbuildinfo

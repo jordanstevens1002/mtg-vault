@@ -18,3 +18,7 @@ test-results/
 .codex/
 .aws/
 backups/
+
+*.tsbuildinfo
+
+frontend/public/ocr/

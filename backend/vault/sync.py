@@ -1,0 +1,142 @@
+"""Atomic catalogue refresh. Run as a separate Compose process."""
+
+import gzip
+import json
+import logging
+import tempfile
+import time
+from datetime import UTC, datetime
+from typing import Any
+from uuid import UUID
+
+import ijson
+from sqlalchemy import text
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.orm import Session
+
+from vault import scryfall
+from vault.config import settings
+from vault.db import engine
+from vault.models import Card, Printing, SyncState
+
+log = logging.getLogger(__name__)
+
+
+def upsert_batch(db: Session, rows: list[dict[str, Any]]) -> int:
+    cards, prints = {}, {}
+    for raw in rows:
+        data = json.loads(json.dumps(raw, default=float))
+        # Some non-game objects have no Oracle identity; retain a stable identity.
+        card_id = UUID(data.get("oracle_id") or data["id"])
+        cards[card_id] = {
+            "id": card_id,
+            "name": data["name"],
+            "data": data,
+            "type_line": data.get("type_line", ""),
+        }
+        prints[UUID(data["id"])] = {
+            "id": UUID(data["id"]),
+            "card_id": card_id,
+            "data": data,
+            "search_names": "\n".join(
+                value
+                for face in [data, *data.get("card_faces", [])]
+                for key in ("name", "printed_name")
+                if isinstance(value := face.get(key), str) and value
+            ),
+        }
+    if not prints:
+        return 0
+    statement = insert(Card).values(list(cards.values()))
+    db.execute(
+        statement.on_conflict_do_update(
+            index_elements=[Card.id],
+            set_={
+                "name": statement.excluded.name,
+                "data": statement.excluded.data,
+                "type_line": statement.excluded.type_line,
+            },
+        )
+    )
+    statement = insert(Printing).values(list(prints.values()))
+    db.execute(
+        statement.on_conflict_do_update(
+            index_elements=[Printing.id],
+            set_={
+                "card_id": statement.excluded.card_id,
+                "data": statement.excluded.data,
+                "search_names": statement.excluded.search_names,
+            },
+            where=(Printing.data.is_distinct_from(statement.excluded.data))
+            | (Printing.search_names.is_distinct_from(statement.excluded.search_names)),
+        )
+    )
+    return len(prints)
+
+
+def refresh() -> None:
+    with engine.connect() as lock:
+        if not lock.scalar(text("SELECT pg_try_advisory_lock(187634001)")):
+            return
+        try:
+            with Session(engine) as db, db.begin():
+                state = db.get(SyncState, 1) or SyncState(id=1)
+                state.running, state.last_attempt, state.error = (
+                    True,
+                    datetime.now(UTC),
+                    None,
+                )
+                db.add(state)
+            bulk = scryfall.get_json("/bulk-data/default_cards")
+            jsonl = bool(bulk.get("jsonl_download_uri"))
+            download = bulk.get("jsonl_download_uri") or bulk.get("download_uri")
+            if not download:
+                raise ValueError("Provider bulk metadata has no supported download URL")
+            url = scryfall.trusted_url(download, {"data.scryfall.io"})
+            with tempfile.TemporaryFile() as file:
+                with scryfall.client() as http, http.stream("GET", url) as response:
+                    response.raise_for_status()
+                    for chunk in response.iter_bytes():
+                        file.write(chunk)
+                file.seek(0)
+                compressed = file.read(2) == b"\x1f\x8b"
+                file.seek(0)
+                stream = gzip.GzipFile(fileobj=file) if compressed else file
+                records = (
+                    (json.loads(line) for line in stream if line.strip())
+                    if jsonl
+                    else ijson.items(stream, "item")
+                )
+                with Session(engine) as db, db.begin():
+                    count, batch = 0, []
+                    for row in records:
+                        batch.append(row)
+                        if len(batch) == 500:
+                            count += upsert_batch(db, batch)
+                            batch = []
+                    count += upsert_batch(db, batch)
+                    if count == 0:
+                        raise ValueError("Provider returned an empty catalogue")
+                    completed = db.get(SyncState, 1)
+                    assert completed
+                    completed.last_success, completed.running, completed.error = (
+                        datetime.now(UTC),
+                        False,
+                        None,
+                    )
+            log.info("Catalogue refresh completed: %s printings", count)
+        except Exception as exc:
+            log.exception("Catalogue refresh failed; previous snapshot retained")
+            with Session(engine) as db, db.begin():
+                state = db.get(SyncState, 1) or SyncState(id=1)
+                state.running, state.error = False, str(exc)[:500]
+                db.add(state)
+        finally:
+            lock.execute(text("SELECT pg_advisory_unlock(187634001)"))
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    while True:
+        refresh()
+        time.sleep(settings().sync_interval_seconds)
