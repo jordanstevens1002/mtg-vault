@@ -19,32 +19,32 @@ agree measurable detection and performance targets before implementation.
 Multiple cards in one photograph is a separate possible feature, not implied by
 these two items.
 
-## Ideas for discussion
+## Additional backlog
 
-These are suggestions rather than scheduled work or approved implementation scope.
+These enhancements are tracked in **Future enhancements**, all initially in
+Backlog. Tracking an idea does not commit a delivery date or implementation order.
 
-- **Find a physical card:** storage hierarchy (box, binder, divider) and printable
-  QR labels that open a location's contents. Make bulk cards easier to retrieve.
-- **Deck completion view:** show missing copies, preferred printings and which
-  storage locations hold available copies; export an acquisition list without
-  reserving stock for competing plans.
-- **Inventory history and undo:** explain receipts, corrections and transfers;
-  reverse an operation only when current physical balances allow it.
-- **Bulk inventory actions:** select cards or an entire storage location to move,
-  tag or export, with a clear quantity preview and atomic confirmation.
-- **Saved views and tags:** reopen frequent filters and organise cards by personal
-  categories such as trade stock, favourites or a particular deck project.
-- **Backup status and scheduling:** display the last successful backup and offer
-  documented scheduled backups plus a restore verification workflow.
-- **Deck snapshots and comparison:** compare revisions, record substitutions and
-  distinguish list changes from physical inventory moves.
-- **Trading workflow:** record offered and received copies with previewed physical
-  stock changes, keeping proposed trades separate from completed transfers.
-- **Multiple collections and memberships:** add accounts and permissions through
-  the existing collection boundary when needed; requires a separate authentication
-  and migration design.
+| Feature | Intended behaviour | Tracking |
+| --- | --- | --- |
+| Storage hierarchy and QR labels | Find cards by box, binder or divider and open location contents from printed labels. | [#54](https://github.com/jordanstevens1002/mtg-vault/issues/54) |
+| Deck completion | Show missing copies and where available stock is stored; export acquisition lists. | [#55](https://github.com/jordanstevens1002/mtg-vault/issues/55) |
+| Inventory history and safe undo | Trace physical changes and reverse them only when current balances permit. | [#56](https://github.com/jordanstevens1002/mtg-vault/issues/56) |
+| Bulk inventory actions | Preview and confirm transfers or exports across selected variants and locations. | [#57](https://github.com/jordanstevens1002/mtg-vault/issues/57) |
+| Saved searches and tags | Reopen frequent views and organise the collection with personal tags. | [#58](https://github.com/jordanstevens1002/mtg-vault/issues/58) |
+| Scheduled backups and status | Track backup health, schedule backups and verify restoration. | [#59](https://github.com/jordanstevens1002/mtg-vault/issues/59) |
+| Deck snapshots and comparison | Compare list revisions without silently moving physical stock. | [#60](https://github.com/jordanstevens1002/mtg-vault/issues/60) |
+| Trading workflow | Keep proposed trades separate from atomic completed exchanges. | [#61](https://github.com/jordanstevens1002/mtg-vault/issues/61) |
+| Collections and memberships | Add accounts and roles through a separately designed migration and authorisation model. | [#62](https://github.com/jordanstevens1002/mtg-vault/issues/62) |
+| Preconstructed-deck import | Choose an official product list, preview exact contents and import a plan or physical deck. | [#63](https://github.com/jordanstevens1002/mtg-vault/issues/63) |
 
-Prefer retrieval, deck completion and inventory history first: they directly
-support the application's focus on built decks and bulk ownership. Evaluate new
-external providers, offline mutation queues and recognition models separately;
-none is introduced by this roadmap.
+## Preconstructed-deck proposal
+
+See the [import design](preconstructed-decks.md) for the proposed data source,
+few-click flow, printing resolution, inventory behaviour, tests and delivery slices.
+Users choose whether they are adding a newly acquired deck, building from existing
+copies or creating a plan; the preview states exactly how owned stock changes.
+
+Prefer physical retrieval, deck completion and inventory history early because
+they directly support built decks and bulk ownership. Preconstructed import can
+build on the existing catalogue and import primitives without waiting for batch
+camera scanning. Confirm delivery order before implementation.
